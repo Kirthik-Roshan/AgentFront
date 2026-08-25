@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "template": "salon-v1",
+    "preview": true,
+    "previewLabel": "Salon template preview — replace with verified business content"
+  },
+  "theme": {
+    "ink": "#25211f",
+    "paper": "#f4f0ea",
+    "accent": "#a86f62",
+    "sage": "#b8bfaa"
+  },
+  "business": {
+    "name": "Studio Muse",
+    "descriptor": "Hair · Beauty · Ritual",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "bookingLink": "",
+    "mapsLink": ""
+  },
+  "hero": {
+    "eyebrow": "A quieter kind of beauty",
+    "title": "Care that feels entirely your own.",
+    "description": "An elegant, mobile-first salon template built for clear services, confident pricing and effortless bookings.",
+    "cta": "Book your visit"
+  },
+  "services": [
+    { "number": "01", "name": "Cut & finish", "description": "Consultation-led cuts, styling and event-ready finishes." },
+    { "number": "02", "name": "Colour studio", "description": "Dimensional colour, gloss, root care and tone refreshes." },
+    { "number": "03", "name": "Skin rituals", "description": "Personalised facials and restorative skin treatments." },
+    { "number": "04", "name": "Hands & feet", "description": "Thoughtful nail care, polish and finishing rituals." }
+  ],
+  "pricing": {
+    "note": "Preview pricing — replace with the salon's approved service list.",
+    "items": [
+      { "service": "Signature haircut", "duration": "60 min", "price": "from ₹900" },
+      { "service": "Colour consultation", "duration": "30 min", "price": "complimentary" },
+      { "service": "Restorative facial", "duration": "75 min", "price": "from ₹1,800" },
+      { "service": "Classic manicure", "duration": "45 min", "price": "from ₹750" }
+    ]
+  },
+  "gallery": [
+    { "title": "The studio", "label": "Replace with approved interior photography", "tone": "sand" },
+    { "title": "Hair craft", "label": "Add real client-approved work", "tone": "rose" },
+    { "title": "Quiet details", "label": "Show products or treatment spaces", "tone": "sage" }
+  ],
+  "team": [
+    { "name": "Lead stylist", "role": "Add verified name and speciality", "initials": "LS" },
+    { "name": "Beauty therapist", "role": "Add verified name and speciality", "initials": "BT" },
+    { "name": "Nail artist", "role": "Add verified name and speciality", "initials": "NA" }
+  ],
+  "testimonials": [
+    { "quote": "Add a genuine, permission-cleared client review here.", "author": "Verified client review" },
+    { "quote": "Use this space for a concise outcome-focused testimonial.", "author": "Verified client review" }
+  ],
+  "hours": [
+    { "days": "Monday – Saturday", "time": "Add verified hours" },
+    { "days": "Sunday", "time": "Add verified hours" }
+  ]
+}

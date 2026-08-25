@@ -1,0 +1,61 @@
+{
+  "meta": {
+    "template": "garments-v1",
+    "preview": true,
+    "previewLabel": "Garments template preview — replace with verified business content",
+    "commerceMode": "enquiry"
+  },
+  "theme": {
+    "ink": "#171b29",
+    "paper": "#f2ecdf",
+    "accent": "#a74731",
+    "gold": "#b78a4b"
+  },
+  "business": {
+    "name": "Loom & Line",
+    "descriptor": "Clothiers · Template preview",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "mapsLink": ""
+  },
+  "hero": {
+    "eyebrow": "New season · Preview collection",
+    "title": "Clothes with a sense of place.",
+    "description": "A composed storefront for local garment businesses — built for discovery, collection enquiries and visits to the shop.",
+    "cta": "Explore collections"
+  },
+  "categories": [
+    { "index": "01", "name": "Everyday wear", "description": "A configurable category for easy, repeat pieces." },
+    { "index": "02", "name": "Celebration", "description": "A configurable category for festive and occasion dressing." },
+    { "index": "03", "name": "Menswear", "description": "A configurable category for tailored and relaxed menswear." },
+    { "index": "04", "name": "Textiles", "description": "A configurable category for fabric, dupattas and accessories." }
+  ],
+  "collections": [
+    { "name": "Indigo study", "caption": "Preview collection · replace with current stock", "tone": "indigo", "tag": "Collection 01" },
+    { "name": "Earth & ember", "caption": "Preview collection · replace with current stock", "tone": "ember", "tag": "Collection 02" },
+    { "name": "Quiet occasion", "caption": "Preview collection · replace with current stock", "tone": "sand", "tag": "Collection 03" }
+  ],
+  "offer": {
+    "enabled": true,
+    "eyebrow": "Store offer placeholder",
+    "title": "Give regular customers a reason to return.",
+    "description": "Configure this space only with a verified offer, validity period and applicable conditions.",
+    "terms": "No live offer is published in this template preview."
+  },
+  "catalog": [
+    { "name": "Draped silhouettes", "type": "Style story", "tone": "navy" },
+    { "name": "Hand-feel details", "type": "Material story", "tone": "rust" },
+    { "name": "Finishing touches", "type": "Accessory story", "tone": "cream" },
+    { "name": "Made for occasions", "type": "Seasonal story", "tone": "gold" }
+  ],
+  "store": {
+    "title": "See the cloth. Feel the weave. Find your fit.",
+    "description": "Use this section for verified fitting services, alterations, size availability and store amenities.",
+    "hours": [
+      { "days": "Monday – Saturday", "time": "Add verified hours" },
+      { "days": "Sunday", "time": "Add verified hours" }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Configurable premium restaurant website template by AgentFront.">
+  <meta name="theme-color" content="#17201b">
+  <title>Restaurant template · AgentFront</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="preview-bar" id="previewBar" role="status">Restaurant template preview</div>
+  <header class="site-header" id="top">
+    <a class="brand" href="#top" aria-label="Home"><span class="brand-mark" aria-hidden="true">E</span><span data-field="business.name">Ember &amp; Leaf</span></a>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="siteNav"><span></span><span></span><span></span><span class="sr-only">Open menu</span></button>
+    <nav class="site-nav" id="siteNav" aria-label="Primary navigation">
+      <a href="#story">Story</a><a href="#menu">Menu</a><a href="#gallery">Gallery</a><a href="#visit">Visit</a>
+    </nav>
+    <a class="button button-small header-cta" href="#menu">View menu</a>
+  </header>
+
+  <main id="main">
+    <section class="hero section-shell">
+      <div class="hero-copy reveal">
+        <p class="eyebrow" data-field="hero.kicker">A neighbourhood table</p>
+        <h1 data-field="hero.title">Familiar flavours, served with a little fire.</h1>
+        <p class="lede" data-field="hero.description">A configurable restaurant experience designed to turn hungry visitors into confident diners and direct orders.</p>
+        <div class="button-row"><a class="button" href="#menu" data-field="hero.primaryCta">Explore the menu</a><a class="text-link" href="#visit"><span data-field="hero.secondaryCta">Find the restaurant</span><span aria-hidden="true">↗</span></a></div>
+      </div>
+      <div class="hero-art reveal" aria-label="Abstract culinary composition" role="img">
+        <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+        <div class="plate"><span class="leaf leaf-one"></span><span class="leaf leaf-two"></span><span class="garnish"></span></div>
+        <div class="hero-note"><span>Made for</span><strong>good company</strong></div>
+      </div>
+      <div class="hero-meta"><span data-field="business.eyebrow">Season-led kitchen · Template preview</span><span class="line"></span><span data-field="business.location">Your neighbourhood</span></div>
+    </section>
+
+    <section class="marquee" aria-label="Highlights"><div>Seasonal plates <span>✦</span> Warm hospitality <span>✦</span> Direct ordering <span>✦</span> Built for mobile <span>✦</span></div></section>
+
+    <section class="story section-shell" id="story">
+      <div class="section-heading reveal"><p class="eyebrow" data-field="about.eyebrow">Our approach</p><h2 data-field="about.title">Good ingredients. Warm service. No unnecessary fuss.</h2></div>
+      <div class="story-copy reveal"><p data-field="about.body">Use this space for the restaurant's verified story, cooking philosophy and the details guests remember.</p><div class="fact-grid" id="factGrid"></div></div>
+    </section>
+
+    <section class="menu-section" id="menu">
+      <div class="section-shell">
+        <div class="section-heading light reveal"><p class="eyebrow">A taste of the menu</p><h2>Made to be passed around.</h2><p class="section-note" data-field="menu.note">Preview dishes and prices — replace during client onboarding.</p></div>
+        <div class="menu-grid" id="menuGrid"></div>
+        <div class="menu-action"><a class="button button-light" href="#contact">Ask about today's menu</a></div>
+      </div>
+    </section>
+
+    <section class="offers section-shell" id="offersSection">
+      <div class="section-heading reveal"><p class="eyebrow">A reason to gather</p><h2>Something for every table.</h2></div>
+      <div class="offer-grid" id="offerGrid"></div>
+    </section>
+
+    <div id="reservationMount"></div>
+
+    <section class="gallery section-shell" id="gallery">
+      <div class="section-heading reveal"><p class="eyebrow">In the restaurant</p><h2>Food, room, rhythm.</h2></div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </section>
+
+    <section class="visit section-shell" id="visit">
+      <div class="visit-panel reveal"><p class="eyebrow">Come by</p><h2>Your next meal starts here.</h2><p data-field="business.location">Your neighbourhood</p><a class="text-link" id="mapsLink" href="#contact">Open in maps <span aria-hidden="true">↗</span></a></div>
+      <div class="hours reveal"><p class="eyebrow">Opening hours</p><div id="hoursList"></div></div>
+    </section>
+
+    <section class="contact section-shell" id="contact">
+      <div><p class="eyebrow">Order or enquire</p><h2>Let’s put something delicious on the table.</h2></div>
+      <div class="contact-actions"><a class="button" id="whatsappLink" href="#contact">Order on WhatsApp</a><a class="text-link" id="phoneLink" href="#contact" data-field="business.phoneDisplay">Add verified phone</a></div>
+    </section>
+  </main>
+
+  <footer><a class="brand" href="#top"><span class="brand-mark">E</span><span data-field="business.name">Ember &amp; Leaf</span></a><p>Website system by AgentFront.</p><p>© <span id="year"></span></p></footer>
+</body>
+</html>

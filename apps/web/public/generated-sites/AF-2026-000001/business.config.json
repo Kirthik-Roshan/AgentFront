@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "projectId": "AF-2026-000001",
+    "preview": true,
+    "previewLabel": "AgentFront launch preview · Demo business data",
+    "imageDisclosure": "Launch imagery created for this demo; final gallery requires restaurant approval."
+  },
+  "theme": {
+    "ink": "#171c17",
+    "paper": "#f7f0e4",
+    "terracotta": "#c95431",
+    "saffron": "#eba63f",
+    "leaf": "#384a35"
+  },
+  "business": {
+    "name": "SpiceRoute Kitchen",
+    "shortName": "SpiceRoute",
+    "location": "Sholinganallur, Chennai",
+    "address": "1, Sholinganallur Main Road, Sholinganallur, Chennai",
+    "phoneDisplay": "+91 98400 12001",
+    "phoneLink": "tel:+919840012001",
+    "whatsappLink": "https://wa.me/919840012001?text=Hello%20SpiceRoute%20Kitchen%2C%20I%27d%20like%20to%20ask%20about%20today%27s%20menu.",
+    "mapsLink": "https://www.google.com/maps/search/?api=1&query=1%2C%20Sholinganallur%20Main%20Road%2C%20Sholinganallur%2C%20Chennai",
+    "mapsEmbed": "https://www.google.com/maps?q=1%2C%20Sholinganallur%20Main%20Road%2C%20Sholinganallur%2C%20Chennai&output=embed"
+  },
+  "hero": {
+    "eyebrow": "Sholinganallur · Chennai",
+    "title": "Warm plates. Bold spice. Straight from the kitchen.",
+    "description": "See what’s on the menu, find SpiceRoute Kitchen on the map and order directly through WhatsApp.",
+    "primaryCta": "Explore the menu",
+    "secondaryCta": "Order on WhatsApp"
+  },
+  "menu": {
+    "title": "Today’s menu, from the source.",
+    "description": "The kitchen confirms current dishes, prices and availability directly on WhatsApp, so your order starts with accurate information.",
+    "note": "Current dishes and prices are confirmed by the kitchen when you message.",
+    "categories": [
+      { "index": "01", "name": "Vegetarian choices", "description": "Ask what vegetarian dishes are available today." },
+      { "index": "02", "name": "Non-vegetarian choices", "description": "Ask the kitchen about today’s non-vegetarian selection." },
+      { "index": "03", "name": "Rice, breads & sides", "description": "Build your order with the current accompaniments." },
+      { "index": "04", "name": "Drinks & something sweet", "description": "Check today’s beverages and desserts before ordering." }
+    ]
+  },
+  "gallery": [
+    { "index": "01", "title": "At the table", "caption": "Warm, generous and ready to share", "variant": "hero" },
+    { "index": "02", "title": "A route through spice", "caption": "An art-directed launch visual", "variant": "spice" },
+    { "index": "03", "title": "Made for the moment", "caption": "An art-directed launch visual", "variant": "leaf" },
+    { "index": "04", "title": "From kitchen to you", "caption": "Ask for the current menu on WhatsApp", "variant": "sun" }
+  ],
+  "hours": [
+    { "days": "Today’s opening hours", "time": "Confirm on WhatsApp" }
+  ],
+  "features": {
+    "menu": true,
+    "gallery": true,
+    "whatsappOrdering": true,
+    "googleMaps": true,
+    "reservations": false
+  }
+}

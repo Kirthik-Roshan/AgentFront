@@ -1,0 +1,330 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CampaignStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  STOPPED
+}
+
+enum BusinessType {
+  restaurant
+  salon
+  garments
+  mechanic
+}
+
+enum DigitalPresenceStatus {
+  NONE
+  WEAK
+  ADEQUATE
+  STRONG
+}
+
+enum BusinessSource {
+  GOOGLE_PLACES
+  DEMO
+}
+
+enum PipelineState {
+  DISCOVERED
+  QUALIFIED
+  CRM_CREATED
+  OUTREACH_READY
+  CONVERSATION_ACTIVE
+  REQUIREMENTS_COLLECTED
+  NEGOTIATING
+  DEAL_WON
+  SPEC_GENERATED
+  BUILD_QUEUED
+  BUILDING
+  QA
+  DEPLOYING
+  DEPLOYED
+  REJECTED
+  NOT_INTERESTED
+  FOLLOW_UP
+  DEAL_LOST
+  BUILD_FAILED
+  DEPLOY_FAILED
+}
+
+enum ConversationStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
+enum DealStatus {
+  DRAFT
+  NEGOTIATING
+  WON
+  LOST
+}
+
+enum ProjectStatus {
+  SPEC_PENDING
+  SPEC_READY
+  QUEUED
+  BUILDING
+  QA
+  DEPLOYING
+  DEPLOYED
+  FAILED
+}
+
+enum DeploymentStatus {
+  PENDING
+  DEPLOYING
+  DEPLOYED
+  FAILED
+}
+
+enum ProviderMode {
+  REAL
+  DEMO
+}
+
+enum EventStatus {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum RevenueType {
+  BOOKED
+  COLLECTED
+  REFUNDED
+}
+
+model Campaign {
+  id                      String         @id @default(uuid())
+  name                    String
+  status                  CampaignStatus @default(DRAFT)
+  businessTypes           Json
+  locations               Json
+  qualificationPolicy     Json
+  minimumOpportunityScore Int
+  pricingPolicy           Json
+  maximumCallsPerDay      Int
+  callingWindow           Json
+  automaticProcessing     Boolean        @default(false)
+  createdAt               DateTime       @default(now())
+  startedAt               DateTime?
+  stoppedAt               DateTime?
+  leads                    Lead[]
+
+  @@index([status])
+}
+
+model Business {
+  id                       String                @id @default(uuid())
+  externalPlaceId          String?               @unique
+  name                     String
+  category                 BusinessType
+  address                  String
+  city                     String
+  latitude                 Decimal               @db.Decimal(10, 7)
+  longitude                Decimal               @db.Decimal(10, 7)
+  phone                    String?
+  rating                   Decimal               @db.Decimal(2, 1)
+  reviewCount              Int
+  website                  String?
+  googleMapsUrl            String?
+  socialLinks              Json
+  digitalPresenceStatus    DigitalPresenceStatus
+  onlineOrdering           Boolean?
+  reservationSystem        Boolean?
+  source                   BusinessSource
+  createdAt                DateTime              @default(now())
+  leads                     Lead[]
+
+  @@index([city, category])
+  @@index([digitalPresenceStatus])
+}
+
+model Lead {
+  id                     String              @id @default(uuid())
+  projectId              String              @unique
+  businessId             String
+  campaignId             String
+  opportunityScore       Int
+  scoreBreakdown         Json
+  qualificationReason    String
+  status                 PipelineState       @default(DISCOVERED)
+  freshworksAccountId    String?
+  freshworksContactId    String?
+  freshworksDealId       String?
+  version                Int                 @default(1)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  business               Business            @relation(fields: [businessId], references: [id])
+  campaign               Campaign            @relation(fields: [campaignId], references: [id])
+  conversations          Conversation[]
+  requirements           Requirements?
+  deal                   Deal?
+  project                Project?
+  agentEvents            AgentEvent[]
+  transitions            PipelineTransition[]
+
+  @@unique([businessId, campaignId])
+  @@index([status])
+  @@index([campaignId, status])
+}
+
+model Conversation {
+  id                     String             @id @default(uuid())
+  leadId                 String
+  provider               String
+  providerMode           ProviderMode
+  providerConversationId String             @unique
+  clientToken            String?
+  providerUrl            String?
+  status                 ConversationStatus @default(PENDING)
+  transcript             Json
+  summary                String?
+  sentiment              String             @default("UNKNOWN")
+  startedAt              DateTime?
+  endedAt                DateTime?
+  lead                   Lead               @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, status])
+}
+
+model Requirements {
+  id                  String       @id @default(uuid())
+  leadId              String       @unique
+  businessType        BusinessType
+  pages               Json
+  features            Json
+  branding            Json
+  contentRequirements Json
+  budget              Json
+  notes               Json
+  approvedAt          DateTime?
+  lead                Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Deal {
+  id            String         @id @default(uuid())
+  leadId        String         @unique
+  quotedAmount  Int
+  discount      Int
+  finalAmount   Int
+  currency      String         @default("INR")
+  status        DealStatus     @default(DRAFT)
+  acceptedAt    DateTime?
+  lostReason    String?
+  lead          Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  revenueEvents RevenueEvent[]
+
+  @@index([status])
+}
+
+model Project {
+  id            String        @id @default(uuid())
+  projectId     String        @unique
+  leadId        String        @unique
+  templateType  BusinessType
+  specification Json?
+  status        ProjectStatus @default(SPEC_PENDING)
+  buildPath     String?
+  buildLog      Json
+  qaStatus      String        @default("PENDING")
+  qaResult      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lead          Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  deployment    Deployment?
+
+  @@index([status])
+}
+
+model Deployment {
+  id           String           @id @default(uuid())
+  projectId    String           @unique
+  provider     String
+  providerMode ProviderMode
+  url          String
+  status       DeploymentStatus @default(PENDING)
+  deployedAt   DateTime?
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model PipelineTransition {
+  id             String        @id @default(uuid())
+  leadId         String
+  projectId      String
+  from           PipelineState?
+  to             PipelineState
+  actor          String
+  reason         String
+  idempotencyKey String        @unique
+  metadata       Json
+  createdAt      DateTime      @default(now())
+  lead           Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@index([projectId])
+}
+
+model AgentEvent {
+  id         String      @id @default(uuid())
+  leadId     String?
+  projectId  String?
+  campaignId String?
+  agentType  String
+  eventType  String
+  message    String
+  metadata   Json
+  status     EventStatus @default(INFO)
+  durationMs Int?
+  createdAt  DateTime    @default(now())
+  lead       Lead?       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([campaignId, createdAt])
+}
+
+model RevenueEvent {
+  id        String      @id @default(uuid())
+  dealId    String
+  amount    Int
+  currency  String      @default("INR")
+  type      RevenueType
+  createdAt DateTime    @default(now())
+  deal      Deal        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+model ProjectSequence {
+  year      Int      @id
+  nextValue Int      @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model IdempotencyRecord {
+  key         String   @id
+  operation   String
+  fingerprint String
+  response    Json?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+
+  @@index([expiresAt])
+}

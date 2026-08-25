@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Configurable premium garments and clothing shop website template by AgentFront.">
+  <meta name="theme-color" content="#171b29">
+  <title>Garments template · AgentFront</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Italiana&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="preview" id="previewBar" role="status">Garments template preview</div>
+  <header class="header" id="top">
+    <a class="logo" href="#top"><span class="logo-symbol">L</span><span><strong data-field="business.name">Loom &amp; Line</strong><small data-field="business.descriptor">Clothiers · Template preview</small></span></a>
+    <button class="nav-button" aria-expanded="false" aria-controls="nav" type="button"><span></span><span></span><span class="sr-only">Open menu</span></button>
+    <nav id="nav" aria-label="Primary"><a href="#categories">Shop by style</a><a href="#collections">Collections</a><a href="#catalog">Lookbook</a><a href="#visit">Visit</a></nav>
+    <a class="header-action" id="headerWhatsapp" href="#enquire">Enquire <span>↗</span></a>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="hero-image reveal" role="img" aria-label="Curated garment boutique interior"><span class="image-index">AF / GARMENTS / 01</span></div>
+      <div class="hero-copy reveal"><p class="eyebrow" data-field="hero.eyebrow">New season · Preview collection</p><h1 data-field="hero.title">Clothes with a sense of place.</h1><p data-field="hero.description">A composed storefront for local garment businesses — built for discovery, collection enquiries and visits to the shop.</p><a class="arrow-link" href="#collections"><span data-field="hero.cta">Explore collections</span><i>↓</i></a></div>
+      <div class="hero-side"><span>Edition 01</span><span>Enquiry-led storefront</span></div>
+    </section>
+
+    <section class="manifesto shell reveal"><p>Not a cart. A considered introduction to the collection — with direct enquiries and a clear path to the store.</p><span>Configurable by design</span></section>
+
+    <section class="categories shell" id="categories">
+      <header class="section-head reveal"><p class="eyebrow">Browse by style</p><h2>Begin with what feels like you.</h2></header>
+      <div class="category-list" id="categoryList"></div>
+    </section>
+
+    <section class="collections" id="collections">
+      <div class="shell"><header class="section-head light reveal"><p class="eyebrow">Featured collections</p><h2>A wardrobe in chapters.</h2></header><div class="collection-grid" id="collectionGrid"></div></div>
+    </section>
+
+    <section class="offer shell" id="offerSection">
+      <div class="offer-mark">%</div><div class="reveal"><p class="eyebrow" data-field="offer.eyebrow">Store offer placeholder</p><h2 data-field="offer.title">Give regular customers a reason to return.</h2><p data-field="offer.description">Configure this space only with a verified offer, validity period and applicable conditions.</p><small data-field="offer.terms">No live offer is published in this template preview.</small></div>
+    </section>
+
+    <section class="catalog shell" id="catalog">
+      <header class="section-head reveal"><p class="eyebrow">Lookbook</p><h2>Texture, tone and detail.</h2></header>
+      <div class="catalog-grid" id="catalogGrid"></div>
+    </section>
+
+    <section class="enquire" id="enquire">
+      <div class="shell enquire-inner"><div class="reveal"><p class="eyebrow">Personal shopping</p><h2>Found something that feels right?</h2><p>Ask about size, colour and current availability directly on WhatsApp. This template intentionally does not add ecommerce unless purchased.</p></div><a class="round-cta reveal" id="whatsappLink" href="#enquire"><span>Enquire on<br>WhatsApp</span><i>↗</i></a></div>
+    </section>
+
+    <section class="visit shell" id="visit">
+      <div class="visit-copy reveal"><p class="eyebrow">Visit the store</p><h2 data-field="store.title">See the cloth. Feel the weave. Find your fit.</h2><p data-field="store.description">Use this section for verified fitting services, alterations, size availability and store amenities.</p><p class="location" data-field="business.location">Your neighbourhood</p><div class="visit-links"><a id="mapsLink" href="#visit">Directions ↗</a><a id="phoneLink" href="#visit" data-field="business.phoneDisplay">Add verified phone</a></div></div>
+      <div class="hours reveal"><p class="eyebrow">Store hours</p><div id="hoursList"></div></div>
+    </section>
+  </main>
+
+  <footer><a class="logo" href="#top"><span class="logo-symbol">L</span><span><strong data-field="business.name">Loom &amp; Line</strong><small data-field="business.descriptor">Clothiers · Template preview</small></span></a><p>Enquiry-led garment template. No checkout enabled.</p><p>© <span id="year"></span> · AgentFront</p></footer>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "@agentfront/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@agentfront/types": "0.1.0"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "meta": {
+    "template": "restaurant-v1",
+    "preview": true,
+    "previewLabel": "Restaurant template preview — replace with verified business content"
+  },
+  "theme": {
+    "ink": "#17201b",
+    "paper": "#f7f1e6",
+    "accent": "#d86532",
+    "accentSoft": "#efc46d"
+  },
+  "business": {
+    "name": "Ember & Leaf",
+    "eyebrow": "Season-led kitchen · Template preview",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "reservationLink": "",
+    "mapsLink": "",
+    "email": ""
+  },
+  "hero": {
+    "kicker": "A neighbourhood table",
+    "title": "Familiar flavours, served with a little fire.",
+    "description": "A configurable restaurant experience designed to turn hungry visitors into confident diners and direct orders.",
+    "primaryCta": "Explore the menu",
+    "secondaryCta": "Find the restaurant"
+  },
+  "about": {
+    "eyebrow": "Our approach",
+    "title": "Good ingredients. Warm service. No unnecessary fuss.",
+    "body": "Use this space for the restaurant's verified story, cooking philosophy and the details guests remember.",
+    "facts": [
+      { "value": "01", "label": "Verified story" },
+      { "value": "02", "label": "Seasonal highlights" },
+      { "value": "03", "label": "Direct ordering" }
+    ]
+  },
+  "menu": {
+    "note": "Preview dishes and prices — replace during client onboarding.",
+    "categories": [
+      {
+        "name": "Small plates",
+        "items": [
+          { "name": "Charred corn chaat", "description": "Tamarind, chilli and toasted peanuts", "price": "₹260" },
+          { "name": "Pepper paneer", "description": "Curry leaf, shallot and cracked pepper", "price": "₹340" }
+        ]
+      },
+      {
+        "name": "From the kitchen",
+        "items": [
+          { "name": "Smoked tomato curry", "description": "Cashew, fenugreek and seasonal vegetables", "price": "₹420" },
+          { "name": "Clay-pot chicken", "description": "Roasted spice, coconut and red chilli", "price": "₹520" }
+        ]
+      }
+    ]
+  },
+  "offers": [
+    { "label": "Weekday table", "title": "Lunch, made unhurried", "description": "Configure this card with a verified weekday offer or remove the section entirely." },
+    { "label": "For groups", "title": "Menus worth sharing", "description": "Highlight group dining, catering or celebration packages here." }
+  ],
+  "reservations": {
+    "eyebrow": "Reservations",
+    "title": "A table, set aside for you.",
+    "description": "Choose a date and party size through the restaurant's configured reservation channel.",
+    "cta": "Request a table"
+  },
+  "gallery": [
+    { "title": "Signature plates", "caption": "Replace with approved food photography", "tone": "saffron" },
+    { "title": "The dining room", "caption": "Show the real space and atmosphere", "tone": "forest" },
+    { "title": "At the pass", "caption": "Share a genuine kitchen moment", "tone": "clay" }
+  ],
+  "hours": [
+    { "days": "Monday – Friday", "time": "Add verified hours" },
+    { "days": "Saturday – Sunday", "time": "Add verified hours" }
+  ],
+  "features": {
+    "offers": true,
+    "reservations": false,
+    "whatsappOrdering": true
+  }
+}

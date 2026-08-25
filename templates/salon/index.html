@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Configurable premium salon and beauty parlour website template by AgentFront.">
+  <meta name="theme-color" content="#25211f">
+  <title>Salon template · AgentFront</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="preview-bar" id="previewBar" role="status">Salon template preview</div>
+  <header class="header" id="top">
+    <a class="wordmark" href="#top"><span data-field="business.name">Studio Muse</span><small data-field="business.descriptor">Hair · Beauty · Ritual</small></a>
+    <button class="nav-toggle" type="button" aria-controls="nav" aria-expanded="false"><span></span><span></span><span class="sr-only">Open menu</span></button>
+    <nav id="nav" aria-label="Primary"><a href="#services">Services</a><a href="#pricing">Pricing</a><a href="#studio">Studio</a><a href="#team">Team</a><a href="#visit">Visit</a></nav>
+    <a class="pill header-book" href="#booking">Book now</a>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="hero-copy reveal">
+        <p class="eyebrow" data-field="hero.eyebrow">A quieter kind of beauty</p>
+        <h1 data-field="hero.title">Care that feels entirely your own.</h1>
+        <p data-field="hero.description">An elegant, mobile-first salon template built for clear services, confident pricing and effortless bookings.</p>
+        <div class="actions"><a class="pill" href="#booking" data-field="hero.cta">Book your visit</a><a class="underlink" href="#services">Explore services <span>↓</span></a></div>
+      </div>
+      <div class="hero-image reveal" role="img" aria-label="Elegant salon interior">
+        <div class="image-stamp"><span>Thoughtful care</span><strong>01</strong></div>
+      </div>
+      <p class="vertical-note">Beauty, considered.</p>
+    </section>
+
+    <section class="intro shell">
+      <p class="intro-mark">M</p>
+      <div class="reveal"><p class="eyebrow">The studio philosophy</p><h2>Expert hands. Honest advice. Space to exhale.</h2></div>
+      <p class="intro-copy reveal">Replace this preview copy with the salon’s true philosophy, specialities and approach to personalised care.</p>
+    </section>
+
+    <section class="services shell" id="services">
+      <header class="section-head reveal"><div><p class="eyebrow">Our services</p><h2>Care, from root to ritual.</h2></div><p>A concise view of the salon’s core services. Each category, description and order is controlled by configuration.</p></header>
+      <div class="service-grid" id="serviceGrid"></div>
+    </section>
+
+    <section class="pricing" id="pricing">
+      <div class="shell pricing-layout">
+        <div class="pricing-title reveal"><p class="eyebrow">Service menu</p><h2>Clear choices.<br>Beautiful results.</h2><p data-field="pricing.note">Preview pricing — replace with the salon's approved service list.</p></div>
+        <div class="price-list reveal" id="priceList"></div>
+      </div>
+    </section>
+
+    <section class="studio shell" id="studio">
+      <header class="section-head reveal"><div><p class="eyebrow">Inside the studio</p><h2>A calm place to arrive.</h2></div><p>Swap these art-directed placeholders for approved photography without changing the layout system.</p></header>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </section>
+
+    <section class="team shell" id="team">
+      <header class="section-head reveal"><div><p class="eyebrow">Meet the team</p><h2>People who listen first.</h2></div><p>Show names and credentials only after the client has verified them.</p></header>
+      <div class="team-grid" id="teamGrid"></div>
+    </section>
+
+    <section class="voices">
+      <div class="shell"><p class="eyebrow">Client notes</p><div class="quote-grid" id="quoteGrid"></div></div>
+    </section>
+
+    <section class="booking shell" id="booking">
+      <div class="booking-copy reveal"><p class="eyebrow">Appointments</p><h2>Ready for a little time that’s yours?</h2><p>Choose the configured booking path or begin a conversation on WhatsApp.</p></div>
+      <div class="booking-actions reveal"><a class="pill pill-light" id="bookingLink" href="#booking">Request an appointment</a><a class="underlink light" id="whatsappLink" href="#booking">Chat on WhatsApp ↗</a></div>
+    </section>
+
+    <section class="visit shell" id="visit">
+      <div class="visit-card"><p class="eyebrow">Find us</p><h2 data-field="business.location">Your neighbourhood</h2><a class="underlink" id="mapsLink" href="#visit">Open in maps ↗</a></div>
+      <div class="hours"><p class="eyebrow">Opening hours</p><div id="hoursList"></div><a id="phoneLink" class="underlink" href="#visit" data-field="business.phoneDisplay">Add verified phone</a></div>
+    </section>
+  </main>
+
+  <footer><a class="wordmark" href="#top"><span data-field="business.name">Studio Muse</span><small data-field="business.descriptor">Hair · Beauty · Ritual</small></a><p>Website system by AgentFront.</p><p>© <span id="year"></span></p></footer>
+</body>
+</html>

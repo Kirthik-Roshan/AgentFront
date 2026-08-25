@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "projectId": "AF-2026-000001",
+  "business": {
+    "name": "SpiceRoute Kitchen",
+    "type": "restaurant",
+    "location": "1, Sholinganallur Main Road, Sholinganallur, Chennai",
+    "phone": "+91 98400 12001"
+  },
+  "commercial": {
+    "quotedPrice": 7999,
+    "finalPrice": 7200,
+    "currency": "INR"
+  },
+  "pages": [
+    "Home",
+    "Menu",
+    "Gallery",
+    "Contact"
+  ],
+  "features": {
+    "menu": true,
+    "gallery": true,
+    "whatsappOrdering": true,
+    "googleMaps": true,
+    "reservations": false
+  },
+  "design": {
+    "style": "premium modern restaurant",
+    "primaryColour": "warm dark",
+    "mobileFirst": true
+  }
+}

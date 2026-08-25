@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Configurable professional mechanic and automobile workshop website template by AgentFront.">
+  <meta name="theme-color" content="#101816">
+  <title>Mechanic template · AgentFront</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="preview-bar" id="previewBar" role="status">Mechanic workshop template preview</div>
+  <header class="header" id="top">
+    <a class="brand" href="#top"><span class="brand-icon" aria-hidden="true">N</span><span><strong data-field="business.name">Northline Auto Care</strong><small data-field="business.descriptor">Independent workshop · Template preview</small></span></a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav"><span></span><span></span><span class="sr-only">Open menu</span></button>
+    <nav id="nav" aria-label="Primary"><a href="#services">Services</a><a href="#vehicles">Vehicles</a><a href="#packages">Packages</a><a href="#workshop">Workshop</a><a href="#visit">Visit</a></nav>
+    <a class="button button-small header-cta" id="headerPhone" href="#contact">Call workshop</a>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="hero-backdrop" role="img" aria-label="Professional automobile workshop"></div>
+      <div class="hero-overlay"></div>
+      <div class="hero-copy shell reveal"><p class="eyebrow" data-field="hero.eyebrow">Straight answers. Skilled hands.</p><h1 data-field="hero.title">Keep moving with service you can trust.</h1><p data-field="hero.description">A fast, clear workshop website system built around service discovery, urgent contact and direct WhatsApp enquiries.</p><div class="hero-actions"><a class="button" href="#contact" data-field="hero.primaryCta">Request a service</a><a class="outline-link" href="#services" data-field="hero.secondaryCta">View workshop services</a></div></div>
+      <div class="status-strip"><div><span class="pulse"></span> Workshop status</div><strong>Confirm today’s availability</strong><span data-field="business.location">Your neighbourhood</span></div>
+    </section>
+
+    <section class="trust shell" id="approach"><div class="trust-copy reveal"><p class="eyebrow">How we work</p><h2>No guesswork between the problem and the repair.</h2><p>Replace this preview statement with the workshop’s verified process, expertise and customer promise.</p></div><div class="trust-grid" id="trustGrid"></div></section>
+
+    <section class="services" id="services">
+      <div class="shell"><header class="section-head reveal"><div><p class="eyebrow">Workshop services</p><h2>From warning light to road-ready.</h2></div><p>Services, descriptions and order are driven by one business configuration.</p></header><div class="service-grid" id="serviceGrid"></div></div>
+    </section>
+
+    <section class="vehicles shell" id="vehicles">
+      <div class="vehicle-intro reveal"><p class="eyebrow">Vehicles supported</p><h2>Built around the vehicles your customers drive.</h2><p>Only publish vehicle types the workshop has confirmed it services.</p></div><div class="vehicle-list" id="vehicleList"></div>
+    </section>
+
+    <section class="packages" id="packages">
+      <div class="shell"><header class="section-head reveal"><div><p class="eyebrow">Service packages</p><h2>A clearer starting point.</h2></div><p data-field="packages.note">Preview package details — replace with approved scope and pricing.</p></header><div class="package-grid" id="packageGrid"></div></div>
+    </section>
+
+    <section class="workshop shell" id="workshop">
+      <header class="section-head reveal"><div><p class="eyebrow">Inside the workshop</p><h2>Clean process. Capable equipment.</h2></div><p>Replace art-directed placeholders with real, approved workshop photography.</p></header><div class="gallery-grid" id="galleryGrid"></div>
+    </section>
+
+    <section class="reviews"><div class="shell"><p class="eyebrow">Driver feedback</p><div class="review-grid" id="reviewGrid"></div></div></section>
+
+    <section class="emergency shell" id="contact">
+      <div class="emergency-copy reveal"><span>Need help now?</span><h2>Tell the workshop what happened.</h2><p>For breakdowns or urgent concerns, use the configured emergency channel. For routine service, start on WhatsApp.</p></div><div class="emergency-actions reveal"><a class="button button-light" id="emergencyLink" href="#contact">Emergency contact</a><a class="outline-link light" id="whatsappLink" href="#contact">WhatsApp enquiry ↗</a></div>
+    </section>
+
+    <section class="visit shell" id="visit">
+      <div class="map-card"><div class="map-grid" aria-hidden="true"><span></span><span></span><span></span></div><div><p class="eyebrow">Workshop location</p><h2 data-field="business.location">Your neighbourhood</h2><a id="mapsLink" href="#visit">Open directions ↗</a></div></div>
+      <div class="hours"><p class="eyebrow">Opening hours</p><div id="hoursList"></div><a id="phoneLink" href="#visit" data-field="business.phoneDisplay">Add verified phone</a></div>
+    </section>
+  </main>
+  <footer><a class="brand" href="#top"><span class="brand-icon">N</span><span><strong data-field="business.name">Northline Auto Care</strong><small data-field="business.descriptor">Independent workshop · Template preview</small></span></a><p>Website system by AgentFront.</p><p>© <span id="year"></span></p></footer>
+</body>
+</html>

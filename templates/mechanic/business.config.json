@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "template": "mechanic-v1",
+    "preview": true,
+    "previewLabel": "Mechanic workshop template preview — replace with verified business content"
+  },
+  "theme": {
+    "ink": "#101816",
+    "panel": "#192420",
+    "paper": "#eff0e8",
+    "accent": "#f4ad32",
+    "signal": "#d85535"
+  },
+  "business": {
+    "name": "Northline Auto Care",
+    "descriptor": "Independent workshop · Template preview",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "emergencyLink": "",
+    "mapsLink": ""
+  },
+  "hero": {
+    "eyebrow": "Straight answers. Skilled hands.",
+    "title": "Keep moving with service you can trust.",
+    "description": "A fast, clear workshop website system built around service discovery, urgent contact and direct WhatsApp enquiries.",
+    "primaryCta": "Request a service",
+    "secondaryCta": "View workshop services"
+  },
+  "trust": [
+    { "value": "01", "label": "Clear diagnosis" },
+    { "value": "02", "label": "Approved repairs" },
+    { "value": "03", "label": "Service updates" }
+  ],
+  "services": [
+    { "code": "SRV-01", "name": "General service", "description": "Inspection, oil and filter care, fluid checks and a clear service summary." },
+    { "code": "SRV-02", "name": "Engine diagnostics", "description": "Fault tracing and diagnostic review before any repair is approved." },
+    { "code": "SRV-03", "name": "Brakes & suspension", "description": "Inspection and repair for braking, steering and ride concerns." },
+    { "code": "SRV-04", "name": "AC & electrical", "description": "Cooling, battery, starting and electrical-system diagnosis." }
+  ],
+  "vehicles": ["Hatchbacks", "Sedans", "SUVs", "Two-wheelers"],
+  "packages": {
+    "note": "Preview package details — replace with approved scope and pricing.",
+    "items": [
+      { "name": "Essential check", "tag": "Routine care", "price": "Quote after inspection", "includes": ["Multi-point inspection", "Fluid and tyre check", "Service recommendation"] },
+      { "name": "Road-ready service", "tag": "Popular", "price": "Quote after inspection", "includes": ["Essential check scope", "Oil and filter review", "Diagnostic scan"] },
+      { "name": "Pre-trip inspection", "tag": "Long drives", "price": "Quote after inspection", "includes": ["Safety systems review", "Battery and AC check", "Written findings"] }
+    ]
+  },
+  "gallery": [
+    { "title": "Diagnostic bay", "caption": "Replace with approved workshop photography", "tone": "graphite" },
+    { "title": "Service in progress", "caption": "Show real technicians with permission", "tone": "amber" },
+    { "title": "Tools & standards", "caption": "Document genuine equipment and process", "tone": "steel" }
+  ],
+  "testimonials": [
+    { "quote": "Add a genuine, permission-cleared customer review here.", "author": "Verified customer review" },
+    { "quote": "Use this space for a concise review about service and communication.", "author": "Verified customer review" }
+  ],
+  "hours": [
+    { "days": "Monday – Saturday", "time": "Add verified hours" },
+    { "days": "Sunday", "time": "Add verified hours" }
+  ]
+}

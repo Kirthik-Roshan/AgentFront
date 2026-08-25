@@ -1,7 +1,14 @@
 {
   "files": [],
   "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+    { "path": "./apps/web" },
+    { "path": "./apps/api" },
+    { "path": "./apps/worker" },
+    { "path": "./packages/types" },
+    { "path": "./packages/scoring" },
+    { "path": "./packages/orchestration" },
+    { "path": "./packages/integrations" },
+    { "path": "./packages/database" },
+    { "path": "./packages/ui" }
   ]
 }

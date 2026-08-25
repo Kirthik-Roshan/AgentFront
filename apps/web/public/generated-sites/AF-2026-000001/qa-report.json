@@ -1,0 +1,41 @@
+{
+  "projectId": "AF-2026-000001",
+  "status": "PASSED",
+  "score": 100,
+  "passed": 25,
+  "total": 25,
+  "command": "npm run qa:site",
+  "checks": [
+    { "name": "Canonical project ID", "passed": true, "detail": "AF-2026-000001" },
+    { "name": "Project/config ID match", "passed": true, "detail": "AF-2026-000001 / AF-2026-000001" },
+    { "name": "Business name identity", "passed": true, "detail": "SpiceRoute Kitchen / SpiceRoute Kitchen" },
+    { "name": "Business address identity", "passed": true, "detail": "1, Sholinganallur Main Road, Sholinganallur, Chennai / 1, Sholinganallur Main Road, Sholinganallur, Chennai" },
+    { "name": "Business phone identity", "passed": true, "detail": "+91 98400 12001 / +91 98400 12001" },
+    { "name": "Approved commercial terms", "passed": true, "detail": "INR 7200" },
+    { "name": "Declared pages have files", "passed": true, "detail": "index.html, menu.html, gallery.html, contact.html" },
+    { "name": "HTML files are declared pages", "passed": true, "detail": "contact.html, gallery.html, index.html, menu.html" },
+    { "name": "Spec/config feature scope matches", "passed": true, "detail": "gallery, googleMaps, menu, reservations, whatsappOrdering" },
+    { "name": "Feature scope: menu", "passed": true, "detail": "Purchased; menu page and content present" },
+    { "name": "Feature scope: gallery", "passed": true, "detail": "Purchased; gallery page and content present" },
+    { "name": "Feature scope: whatsappOrdering", "passed": true, "detail": "Purchased; WhatsApp actions present" },
+    { "name": "Feature scope: googleMaps", "passed": true, "detail": "Purchased; map actions present" },
+    { "name": "Feature scope: reservations", "passed": true, "detail": "Omitted; reservation UI absent" },
+    { "name": "Configured URLs use safe protocols", "passed": true, "detail": "4 URL fields checked" },
+    { "name": "WhatsApp feature configuration", "passed": true, "detail": "Valid WhatsApp destination configured" },
+    { "name": "Maps feature configuration", "passed": true, "detail": "Links target the configured address" },
+    { "name": "All HTML references resolve safely", "passed": true, "detail": "67 references checked across 4 pages" },
+    { "name": "JavaScript parses", "passed": true, "detail": "1 script file checked" },
+    { "name": "Responsive viewport on every page", "passed": true, "detail": "4/4 pages" },
+    { "name": "Accessible landmarks on every page", "passed": true, "detail": "4/4 pages" },
+    { "name": "Images have alternative text", "passed": true, "detail": "All img elements include alt" },
+    { "name": "Demo state is labelled on every page", "passed": true, "detail": "4/4 pages labelled" },
+    { "name": "Contact details are intentional", "passed": true, "detail": "Name, address and phone validated" },
+    { "name": "No placeholder copy", "passed": true, "detail": "Common placeholder patterns checked" }
+  ],
+  "notes": [
+    "The generated site is dependency-free and opens from index.html using an embedded configuration fallback.",
+    "The served site reads business.config.json with cache disabled.",
+    "Unapproved menu prices and opening hours are intentionally not published.",
+    "Launch imagery and demo business details are visibly disclosed."
+  ]
+}

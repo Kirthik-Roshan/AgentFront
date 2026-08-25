@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">AgentFront</title>
+  <rect width="64" height="64" rx="16" fill="#0d1713"/>
+  <path d="M17 43.5 28.4 17h7.3L47 43.5h-8l-2.1-5.7H26.7l-2.1 5.7H17Zm12-12h5.6l-2.8-7.8-2.8 7.8Z" fill="#b8ef63"/>
+  <path d="M41.8 17H51v5.9h-9.2z" fill="#fff" opacity=".9"/>
+</svg>

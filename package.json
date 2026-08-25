@@ -1,31 +1,55 @@
 {
   "name": "agentfront",
+  "version": "2.0.0",
   "private": true,
-  "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.19",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite --config apps/web/vite.config.ts",
+    "dev:api": "node --env-file-if-exists=.env --import tsx apps/api/src/server.ts",
+    "dev:worker": "node --env-file-if-exists=.env --import tsx apps/worker/src/index.ts",
+    "db:generate": "npm run db:generate --workspace @agentfront/database",
+    "db:migrate": "npm run db:migrate --workspace @agentfront/database",
+    "db:push": "npm run db:push --workspace @agentfront/database",
+    "db:seed": "npm run db:seed --workspace @agentfront/database",
+    "build": "npm run typecheck && npm run build:web",
+    "build:web": "vite build --config apps/web/vite.config.ts",
     "typecheck": "tsc -b --pretty false",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --max-warnings=0",
+    "preview": "vite preview --config apps/web/vite.config.ts",
+    "postinstall": "npm run db:generate",
+    "qa:site": "node scripts/validate-generated-site.mjs generated-sites/AF-2026-000001",
+    "qa": "npm run lint && npm run typecheck && npm run test && npm run qa:site && npm run build"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "lucide-react": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "vite": "latest"
+    "lucide-react": "1.31.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@eslint/js": "latest",
+    "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "6.0.5",
     "eslint": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
     "globals": "latest",
+    "tsx": "latest",
     "typescript": "~5.9.3",
-    "typescript-eslint": "latest"
+    "typescript-eslint": "latest",
+    "vite": "8.2.1",
+    "vitest": "latest"
   }
 }
