@@ -21,6 +21,34 @@ enum BusinessType {
   salon
   garments
   mechanic
+  clinic
+  education
+  realestate
+  fitness
+  bakery
+  legal
+  spa
+  dental
+  physiotherapy
+  petcare
+  catering
+  events
+  photography
+  interiors
+  travel
+  movers
+  appliance
+  trades
+  detailing
+  drivingschool
+  laundry
+  furniture
+  devicerepair
+  printing
+  florist
+  jewellery
+  tailoring
+  cloudkitchen
 }
 
 enum DigitalPresenceStatus {
@@ -108,6 +136,199 @@ enum RevenueType {
   REFUNDED
 }
 
+enum SalesState {
+  DISCOVERED
+  QUALIFIED
+  CALL_PENDING
+  CALLING
+  CONTACTED
+  RECEPTIONIST_CONTACTED
+  DECISION_MAKER_REQUIRED
+  OWNER_CONTACT_IDENTIFIED
+  CALLBACK_REQUESTED
+  FOLLOW_UP_SCHEDULED
+  OWNER_CONTACTED
+  DISCOVERY_CONVERSATION
+  REQUIREMENTS_COLLECTING
+  NEGOTIATING
+  QUOTE_PRESENTED
+  FOLLOW_UP_REQUIRED
+  DEAL_WON
+  DEAL_LOST
+  DO_NOT_CONTACT
+  SPEC_GENERATED
+  BUILD_PENDING
+  BUILDING
+  QA
+  DEPLOYING
+  DEPLOYED
+}
+
+enum ContactRole {
+  OWNER
+  CO_OWNER
+  MANAGER
+  DECISION_MAKER
+  RECEPTIONIST
+  EMPLOYEE
+  UNKNOWN
+}
+
+enum ContactSource {
+  PUBLIC_LISTING
+  RECEPTIONIST_REFERRAL
+  INBOUND_CALL
+  OUTBOUND_CALL
+  CRM
+  FOUNDER
+  DEMO
+}
+
+enum SupportedSalesLanguage {
+  ENGLISH
+  HINDI
+  TAMIL
+  KANNADA
+  TELUGU
+  MALAYALAM
+}
+
+enum CallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum SalesCallStatus {
+  QUEUED
+  INITIATING
+  RINGING
+  IN_PROGRESS
+  COMPLETED
+  NO_ANSWER
+  BUSY
+  FAILED
+  CANCELLED
+}
+
+enum SalesCallOutcome {
+  UNKNOWN
+  RECEPTIONIST_REACHED
+  DECISION_MAKER_REACHED
+  OWNER_CONTACT_CAPTURED
+  CALLBACK_REQUESTED
+  FOLLOW_UP_REQUIRED
+  DEAL_WON
+  DEAL_LOST
+  DO_NOT_CONTACT
+  NO_ANSWER
+  FAILED
+}
+
+enum FollowUpType {
+  OUTBOUND_CALL
+  AWAIT_INBOUND_CALL
+  WHATSAPP
+  EMAIL
+  HUMAN_TASK
+}
+
+enum FollowUpStatus {
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum SalesEventType {
+  LEAD_QUEUED
+  SALES_STATE_CHANGED
+  CALL_SCHEDULED
+  CALL_STARTED
+  CALL_CONNECTED
+  CALL_COMPLETED
+  CALL_FAILED
+  CONTACT_IDENTIFIED
+  CONTACT_CREATED
+  CONTACT_UPDATED
+  RECEPTIONIST_IDENTIFIED
+  OWNER_IDENTIFIED
+  OWNER_CONTACT_CREATED
+  CALLBACK_REQUESTED
+  FOLLOWUP_SCHEDULED
+  FOLLOWUP_COMPLETED
+  REQUIREMENT_CAPTURED
+  OBJECTION_RECORDED
+  QUOTE_CREATED
+  DEAL_WON
+  DEAL_LOST
+  DO_NOT_CONTACT
+  CRM_SYNC_QUEUED
+  CRM_SYNCED
+  CRM_SYNC_FAILED
+  SPEC_GENERATED
+  UNKNOWN_CALLER
+  JOB_RETRY_SCHEDULED
+  JOB_FAILED
+}
+
+enum SalesJobType {
+  PROCESS_LEAD
+  START_OUTBOUND_CALL
+  PROCESS_FOLLOW_UP
+  HANDLE_CALL_COMPLETION
+  SYNC_CRM
+  GENERATE_PROJECT_SPEC
+  TRIGGER_DEVELOPER
+  WORKFLOW_TASK
+}
+
+enum SalesJobStatus {
+  QUEUED
+  PROCESSING
+  RETRY_SCHEDULED
+  COMPLETED
+  FAILED
+  DEAD_LETTER
+  CANCELLED
+}
+
+enum CRMOutboxOperation {
+  UPSERT_BUSINESS
+  UPSERT_CONTACT
+  SYNC_QUALIFICATION
+  SYNC_CALL
+  SYNC_FOLLOW_UP
+  SYNC_REQUIREMENTS
+  SYNC_QUOTE
+  SYNC_DEAL_STAGE
+  SYNC_BUILD_STATUS
+  SYNC_DEPLOYMENT
+}
+
+enum CRMOutboxStatus {
+  QUEUED
+  PROCESSING
+  RETRY_SCHEDULED
+  SYNCED
+  FAILED
+  DEAD_LETTER
+  CANCELLED
+}
+
+enum SalesProjectSpecStatus {
+  READY
+  DISPATCHED
+  FAILED
+}
+
+enum DodoTestCheckoutStatus {
+  RESERVED
+  READY
+  PAID
+  EXPIRED
+}
+
 model Campaign {
   id                      String         @id @default(uuid())
   name                    String
@@ -130,7 +351,10 @@ model Campaign {
 
 model Business {
   id                       String                @id @default(uuid())
+  businessCode             String?               @unique
   externalPlaceId          String?               @unique
+  freshworksAccountId      String?               @unique
+  freshworksDealId         String?               @unique
   name                     String
   category                 BusinessType
   address                  String
@@ -147,11 +371,24 @@ model Business {
   onlineOrdering           Boolean?
   reservationSystem        Boolean?
   source                   BusinessSource
+  salesState               SalesState            @default(DISCOVERED)
   createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
   leads                     Lead[]
+  contacts                  Contact[]
+  calls                     Call[]
+  salesMemory               SalesMemory?
+  followUps                 FollowUp[]
+  salesEvents               SalesEvent[]
+  salesTransitions          SalesStateTransition[]
+  salesJobs                 SalesJob[]
+  crmOutboxItems            CRMOutbox[]
+  salesProjectSpecs         SalesProjectSpec[]
+  workflow                  Workflow?
 
   @@index([city, category])
   @@index([digitalPresenceStatus])
+  @@index([salesState, updatedAt])
 }
 
 model Lead {
@@ -247,8 +484,51 @@ model Project {
   updatedAt     DateTime      @updatedAt
   lead          Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
   deployment    Deployment?
+  dodoTestCheckouts DodoTestCheckout[]
 
   @@index([status])
+}
+
+/// Test-mode only. The idempotency key reserves a single remote checkout attempt.
+model DodoTestCheckout {
+  id                String                 @id @default(uuid())
+  projectId         String
+  idempotencyKey    String                 @unique
+  customerEmail     String
+  customerName      String?
+  productId         String
+  amountMinor       Int
+  currency          String
+  status            DodoTestCheckoutStatus @default(RESERVED)
+  reservationToken  String
+  reservedUntil     DateTime
+  checkoutSessionId String?                @unique
+  checkoutUrl       String?
+  checkoutExpiresAt DateTime?
+  paidAt            DateTime?
+  crmSyncedAt       DateTime?
+  crmLastError      String?
+  crmLeaseToken     String?
+  crmLeaseUntil     DateTime?
+  crmAttempts       Int                    @default(0)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  project           Project                @relation(fields: [projectId], references: [projectId], onDelete: Restrict)
+  paymentClaim      DodoTestPaymentClaim?
+
+  @@index([projectId, status, createdAt])
+  @@index([status, reservedUntil])
+}
+
+/// A signed webhook/payment can make one test checkout paid at most once.
+model DodoTestPaymentClaim {
+  id            String           @id @default(uuid())
+  checkoutId    String           @unique
+  webhookId     String           @unique
+  paymentId     String           @unique
+  occurredAt    DateTime
+  createdAt     DateTime         @default(now())
+  checkout      DodoTestCheckout @relation(fields: [checkoutId], references: [id], onDelete: Restrict)
 }
 
 model Deployment {
@@ -283,6 +563,7 @@ model PipelineTransition {
 
 model AgentEvent {
   id         String      @id @default(uuid())
+  sequence   BigInt      @unique @default(autoincrement())
   leadId     String?
   projectId  String?
   campaignId String?
@@ -293,11 +574,66 @@ model AgentEvent {
   status     EventStatus @default(INFO)
   durationMs Int?
   createdAt  DateTime    @default(now())
+  businessId String?
+  workflowId String?
+  correlationId String?
+  sourceAgent String?
+  retryCount Int         @default(0)
+  payload    Json?
   lead       Lead?       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  workflow   Workflow?   @relation(fields: [workflowId], references: [id], onDelete: SetNull)
 
   @@index([leadId, createdAt])
   @@index([projectId, createdAt])
   @@index([campaignId, createdAt])
+  @@index([businessId, createdAt, id])
+  @@index([workflowId, createdAt, id])
+}
+
+/// One canonical commercial lifecycle per business. Existing Lead/Project records remain linked by businessId.
+model Workflow {
+  id            String       @id @default(uuid())
+  businessId    String       @unique
+  correlationId String       @unique
+  status        String       @default("IDLE")
+  currentAgent  String?
+  currentTask   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  completedAt   DateTime?
+  business      Business     @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  events        AgentEvent[]
+  jobs          SalesJob[]
+  runs          AgentRun[]
+
+  @@index([status, updatedAt])
+}
+
+model AgentRun {
+  id           String    @id @default(uuid())
+  workflowId   String
+  businessId   String
+  jobId        String
+  agentType    String
+  status       String
+  retryCount   Int       @default(0)
+  provider     String?
+  externalId   String?
+  metadata     Json      @default("{}")
+  errorMessage String?
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  workflow     Workflow  @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+
+  @@unique([jobId, retryCount])
+  @@index([workflowId, startedAt])
+  @@index([agentType, status, startedAt])
+}
+
+model SystemControl {
+  id               String   @id
+  emergencyStopped Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
 }
 
 model RevenueEvent {
@@ -327,4 +663,206 @@ model IdempotencyRecord {
   expiresAt   DateTime?
 
   @@index([expiresAt])
+}
+
+model Contact {
+  id                String                  @id @default(uuid())
+  businessId        String
+  freshworksContactId String?               @unique
+  name              String?
+  phone             String
+  normalizedPhone   String
+  roles             ContactRole[]
+  isDecisionMaker   Boolean                 @default(false)
+  preferredLanguage SupportedSalesLanguage?
+  source            ContactSource
+  verified          Boolean                 @default(false)
+  dedupeKey         String?                 @unique
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  business          Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  calls             Call[]
+  followUps         FollowUp[]
+  lastSalesMemories SalesMemory[]           @relation("LastSalesMemoryContact")
+  projectSpecs      SalesProjectSpec[]
+
+  @@index([normalizedPhone])
+  @@index([businessId, isDecisionMaker])
+}
+
+model Call {
+  id                 String                  @id @default(uuid())
+  businessId         String
+  contactId          String?
+  direction          CallDirection
+  provider           String
+  providerCallId     String?
+  providerMode       ProviderMode
+  status             SalesCallStatus        @default(QUEUED)
+  startedAt          DateTime?
+  endedAt            DateTime?
+  outcome            SalesCallOutcome?
+  language           SupportedSalesLanguage?
+  transcript         String?
+  summary            String?
+  recordingUrl       String?
+  idempotencyKey     String                  @unique
+  metadata           Json
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  business           Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contact            Contact?                @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerCallId])
+  @@index([businessId, createdAt])
+  @@index([contactId, createdAt])
+  @@index([status, createdAt])
+}
+
+model SalesMemory {
+  id            String      @id @default(uuid())
+  businessId    String      @unique
+  summary       String
+  objections    Json
+  requirements  Json
+  quotedPrice   Int?
+  agreedPrice   Int?
+  currency      String      @default("INR")
+  dealStage     SalesState  @default(DISCOVERED)
+  nextAction    String?
+  nextActionAt  DateTime?
+  lastContactId String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  business      Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  lastContact   Contact?    @relation("LastSalesMemoryContact", fields: [lastContactId], references: [id], onDelete: SetNull)
+
+  @@index([dealStage, nextActionAt])
+}
+
+model FollowUp {
+  id            String         @id @default(uuid())
+  businessId    String
+  contactId     String?
+  type          FollowUpType
+  scheduledAt   DateTime
+  status        FollowUpStatus @default(SCHEDULED)
+  reason        String
+  attempts      Int            @default(0)
+  maxAttempts   Int            @default(3)
+  lastAttemptAt DateTime?
+  completedAt   DateTime?
+  dedupeKey     String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contact       Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledAt])
+  @@index([businessId, createdAt])
+}
+
+model SalesEvent {
+  id             String         @id @default(uuid())
+  businessId     String
+  eventType      SalesEventType
+  metadata       Json
+  correlationId  String?
+  idempotencyKey String         @unique
+  timestamp      DateTime       @default(now())
+  business       Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, timestamp])
+  @@index([eventType, timestamp])
+}
+
+model SalesStateTransition {
+  id             String     @id @default(uuid())
+  businessId     String
+  from           SalesState
+  to             SalesState
+  actor          String
+  reason         String
+  idempotencyKey String     @unique
+  metadata       Json
+  createdAt      DateTime   @default(now())
+  business       Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+}
+
+model SalesJob {
+  id            String         @id @default(uuid())
+  businessId    String?
+  type          SalesJobType
+  payload       Json
+  status        SalesJobStatus @default(QUEUED)
+  availableAt   DateTime       @default(now())
+  attempts      Int            @default(0)
+  maxAttempts   Int            @default(5)
+  lockedAt      DateTime?
+  lockExpiresAt DateTime?
+  lockedBy      String?
+  lastError     String?
+  dedupeKey     String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  business      Business?      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  workflowId    String?
+  agentType     String          @default("SALES")
+  workflow      Workflow?       @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+
+  @@index([status, availableAt])
+  @@index([businessId, createdAt])
+  @@index([lockExpiresAt])
+  @@index([agentType, status, availableAt])
+}
+
+model SalesWorkerHeartbeat {
+  workerId   String   @id
+  lastSeenAt DateTime
+  startedAt  DateTime @default(now())
+
+  @@index([lastSeenAt])
+}
+
+model CRMOutbox {
+  id             String              @id @default(uuid())
+  businessId     String
+  operation      CRMOutboxOperation
+  payload        Json
+  status         CRMOutboxStatus     @default(QUEUED)
+  availableAt    DateTime            @default(now())
+  attempts       Int                 @default(0)
+  maxAttempts    Int                 @default(8)
+  lockedAt       DateTime?
+  lockExpiresAt  DateTime?
+  lockedBy       String?
+  lastError      String?
+  idempotencyKey String              @unique
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  business       Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt])
+  @@index([businessId, createdAt])
+  @@index([lockExpiresAt])
+}
+
+model SalesProjectSpec {
+  id             String                 @id @default(uuid())
+  businessId     String
+  contactId      String?
+  version        Int                    @default(1)
+  specification  Json
+  status         SalesProjectSpecStatus @default(READY)
+  idempotencyKey String                 @unique
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  business       Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contact        Contact?               @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@unique([businessId, version])
+  @@index([businessId, createdAt])
+  @@index([status, updatedAt])
 }

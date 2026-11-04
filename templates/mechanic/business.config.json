@@ -28,6 +28,18 @@
     "primaryCta": "Request a service",
     "secondaryCta": "View workshop services"
   },
+  "triage": {
+    "eyebrow": "Quick service guide",
+    "title": "Tell us what your vehicle is doing.",
+    "description": "Choose a vehicle and a concern. We'll suggest a starting service, not claim a diagnosis.",
+    "disclaimer": "A technician must inspect the vehicle before confirming any repair or price.",
+    "issues": [
+      { "label": "Warning light", "detail": "A dashboard alert or unusual reading", "serviceCode": "SRV-02", "guidance": "Start with a diagnostic review so the workshop can identify the fault before recommending repairs." },
+      { "label": "Braking or steering", "detail": "Noise, vibration or a change in control", "serviceCode": "SRV-03", "guidance": "A brake and suspension inspection is the safest starting point." },
+      { "label": "Routine service", "detail": "Oil, filters or a general check", "serviceCode": "SRV-01", "guidance": "A general service can review the essentials and document what needs attention." },
+      { "label": "Cooling or electrical", "detail": "AC, battery or starting concerns", "serviceCode": "SRV-04", "guidance": "An AC and electrical check can narrow down the issue before any work is approved." }
+    ]
+  },
   "trust": [
     { "value": "01", "label": "Clear diagnosis" },
     { "value": "02", "label": "Approved repairs" },

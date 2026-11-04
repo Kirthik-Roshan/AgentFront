@@ -1,13 +1,16 @@
 import { ConversationProvider, useConversation } from '@elevenlabs/react';
-import { ArrowRight, Bot, Phone, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Bot, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { useCallback, useRef, useState, type FormEvent } from 'react';
 import { authorizeBrowserConversation, bindBrowserConversation, completeFounderConversation } from './api';
 import type { Business } from './types';
 import {
   appendRealtimeTranscript,
+  buildConfirmedConversationOutcome,
   conversationOperationKey,
+  type ConfirmedBrief,
   type RealtimeTranscriptLine,
 } from './realtime-conversation';
+import './features/sales/conversation-brief.css';
 
 type LiveElevenLabsConversationProps = {
   leadId: string;
@@ -22,33 +25,59 @@ function publicError(error: unknown): string {
   return message.replace(/wss?:\/\/\S+/gi, '[redacted transport credential]');
 }
 
-function createFounderDemoOutcome(business: Business) {
-  const businessType = business.category.toLowerCase() as 'restaurant' | 'salon' | 'garments' | 'mechanic';
-  const profile = {
-    restaurant: { pages: ['Home', 'Menu', 'Location', 'Contact'], features: { menu: true, gallery: true, whatsappOrdering: true, googleMaps: true }, colour: 'Saffron', price: 7200 },
-    salon: { pages: ['Home', 'Services', 'Gallery', 'Book now'], features: { booking: true, gallery: true, whatsappOrdering: true, googleMaps: true, testimonials: true }, colour: 'Rose', price: 8499 },
-    garments: { pages: ['Home', 'Collections', 'Lookbook', 'Contact'], features: { catalog: true, gallery: true, whatsappOrdering: true, googleMaps: true }, colour: 'Indigo', price: 9999 },
-    mechanic: { pages: ['Home', 'Services', 'Emergency contact', 'Location'], features: { emergencyContact: true, whatsappOrdering: true, googleMaps: true, testimonials: true }, colour: 'Steel blue', price: 7999 },
-  }[businessType];
-  const now = new Date().toISOString();
+const featureOptions: Record<ConfirmedBrief['businessType'], { key: string; label: string }[]> = {
+  restaurant: [{ key: 'menu', label: 'Menu' }, { key: 'gallery', label: 'Gallery' }, { key: 'whatsappOrdering', label: 'WhatsApp ordering' }, { key: 'googleMaps', label: 'Map' }],
+  salon: [{ key: 'booking', label: 'Booking enquiry' }, { key: 'gallery', label: 'Gallery' }, { key: 'testimonials', label: 'Testimonials' }, { key: 'googleMaps', label: 'Map' }],
+  garments: [{ key: 'catalog', label: 'Catalogue' }, { key: 'gallery', label: 'Lookbook' }, { key: 'whatsappOrdering', label: 'WhatsApp enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  mechanic: [{ key: 'emergencyContact', label: 'Emergency contact' }, { key: 'testimonials', label: 'Testimonials' }, { key: 'googleMaps', label: 'Map' }, { key: 'whatsappOrdering', label: 'WhatsApp enquiry' }],
+  clinic: [{ key: 'appointments', label: 'Appointments' }, { key: 'doctors', label: 'Doctors' }, { key: 'services', label: 'Care services' }, { key: 'googleMaps', label: 'Map' }],
+  education: [{ key: 'programmes', label: 'Programmes' }, { key: 'mentors', label: 'Mentors' }, { key: 'admissions', label: 'Admissions' }, { key: 'googleMaps', label: 'Map' }],
+  realestate: [{ key: 'listings', label: 'Listings' }, { key: 'viewings', label: 'Private viewings' }, { key: 'whatsappOrdering', label: 'WhatsApp enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  fitness: [{ key: 'classes', label: 'Classes' }, { key: 'coaches', label: 'Coaches' }, { key: 'trialBooking', label: 'Trial booking' }, { key: 'googleMaps', label: 'Map' }],
+  bakery: [{ key: 'menu', label: 'Bake list' }, { key: 'preorders', label: 'Pre-orders' }, { key: 'celebrationCakes', label: 'Celebration cakes' }, { key: 'googleMaps', label: 'Map' }],
+  legal: [{ key: 'practiceAreas', label: 'Practice areas' }, { key: 'consultations', label: 'Consultations' }, { key: 'team', label: 'Professionals' }, { key: 'googleMaps', label: 'Map' }],
+  spa: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  dental: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  physiotherapy: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  petcare: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  catering: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  events: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  photography: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  interiors: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  travel: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  movers: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  appliance: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  trades: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  detailing: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  drivingschool: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  laundry: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  furniture: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  devicerepair: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  printing: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  florist: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  jewellery: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  tailoring: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+  cloudkitchen: [{ key: 'services', label: 'Services' }, { key: 'gallery', label: 'Gallery' }, { key: 'booking', label: 'Enquiry' }, { key: 'googleMaps', label: 'Map' }],
+};
+
+function agentSuggestion(parameters: Record<string, unknown>): Partial<ConfirmedBrief> {
+  const outcome = parameters.outcome && typeof parameters.outcome === 'object' && !Array.isArray(parameters.outcome)
+    ? parameters.outcome as Record<string, unknown> : parameters;
+  const requirements = outcome.requirements && typeof outcome.requirements === 'object' && !Array.isArray(outcome.requirements)
+    ? outcome.requirements as Record<string, unknown> : {};
+  const branding = requirements.branding && typeof requirements.branding === 'object' && !Array.isArray(requirements.branding)
+    ? requirements.branding as Record<string, unknown> : {};
+  const rawFeatures = requirements.features && typeof requirements.features === 'object' && !Array.isArray(requirements.features)
+    ? requirements.features as Record<string, unknown> : {};
   return {
-    transcript: [
-      { id: `founder-${business.id}-1`, speaker: 'AGENT', text: `We can prepare a mobile-first ${business.name} website using the approved scope.`, at: now },
-      { id: `founder-${business.id}-2`, speaker: 'CUSTOMER', text: `I approve the ${profile.pages.join(', ')} scope and the agreed delivery price.`, at: now },
-    ],
-    summary: `Founder-approved demo brief for ${business.name}.`,
-    sentiment: 'POSITIVE',
-    requirements: {
-      businessType,
-      pages: profile.pages,
-      features: profile.features,
-      branding: { style: 'Modern and trustworthy', primaryColour: profile.colour, mobileFirst: true },
-      contentRequirements: ['Use verified business name, location and contact information only.'],
-      budget: { minimum: profile.price, maximum: profile.price, currency: 'INR' },
-      notes: ['Approved by the founder for the live demonstration build.'],
-      approvedAt: now,
-    },
-    acceptedAmount: profile.price,
+    ...(Array.isArray(requirements.pages) ? { pages: requirements.pages.filter((page): page is string => typeof page === 'string').join(', ') } : {}),
+    ...(typeof branding.style === 'string' ? { style: branding.style } : {}),
+    ...(typeof branding.primaryColour === 'string' ? { colour: branding.primaryColour } : {}),
+    ...(Array.isArray(requirements.contentRequirements) ? { content: requirements.contentRequirements.filter((line): line is string => typeof line === 'string').join('\n') } : {}),
+    ...(Number.isSafeInteger(outcome.acceptedAmount) && Number(outcome.acceptedAmount) > 0 ? { price: String(outcome.acceptedAmount) } : {}),
+    ...(requirements.features && typeof requirements.features === 'object' && !Array.isArray(requirements.features)
+      ? { features: Object.entries(rawFeatures).filter(([, enabled]) => enabled === true).map(([key]) => key) }
+      : {}),
   };
 }
 
@@ -59,11 +88,18 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
   const [bindingState, setBindingState] = useState<BindingState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-  const [pendingOutcome, setPendingOutcome] = useState<unknown>(null);
+  const [agentBriefReady, setAgentBriefReady] = useState(false);
+  const [brief, setBrief] = useState<ConfirmedBrief>({
+    businessType: business.category.toLowerCase() as ConfirmedBrief['businessType'],
+    businessName: business.name,
+    pages: '', style: '', colour: '', content: '', price: '', features: [],
+  });
+  const [scopeApproved, setScopeApproved] = useState(false);
+  const [priceApproved, setPriceApproved] = useState(false);
   const [approvingBuild, setApprovingBuild] = useState(false);
   const grantIdRef = useRef<string | null>(null);
-  const sessionOperationRef = useRef<string | null>(null);
   const connectOperationRef = useRef<string | null>(null);
+  const completionOperationRef = useRef<string | null>(null);
 
   const bindConversation = useCallback(async (conversationId: string) => {
     const grantId = grantIdRef.current;
@@ -84,10 +120,10 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
       });
       setBindingState('bound');
       setError(null);
-      onNotice(`ElevenLabs connected · provider conversation ${conversationId} verified by the API`);
+      onNotice(`ElevenLabs text chat connected · provider conversation ${conversationId} verified by the API`);
     } catch (cause) {
       setBindingState('failed');
-      setError(`The live call connected, but secure server correlation failed: ${publicError(cause)}`);
+      setError(`The live chat connected, but secure server correlation failed: ${publicError(cause)}`);
     }
   }, [leadId, onNotice]);
 
@@ -95,10 +131,19 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
     textOnly: true,
     clientTools: {
       submit_build_brief: async (parameters: Record<string, unknown>) => {
-        const outcome = parameters.outcome ?? parameters;
-        setPendingOutcome(outcome);
-        onNotice('ElevenLabs prepared a build brief. Review the chat, then approve the build and deployment.');
-        return 'Build brief received; waiting for founder approval.';
+        setBrief((current) => {
+          const suggestion = agentSuggestion(parameters);
+          return {
+            ...current,
+            ...suggestion,
+            features: (suggestion.features ?? current.features).filter((key) => featureOptions[current.businessType].some((option) => option.key === key)),
+          };
+        });
+        setAgentBriefReady(true);
+        setScopeApproved(false);
+        setPriceApproved(false);
+        onNotice('Agent-suggested brief received. Check every detail and confirm the scope and price yourself.');
+        return 'Draft displayed for customer review. It will not trigger a build without explicit approval.';
       },
     },
     onConnect: ({ conversationId }) => {
@@ -117,10 +162,18 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
     if (requestingAccess || (conversation.status !== 'disconnected' && conversation.status !== 'error')) return;
     setRequestingAccess(true);
     setError(null);
+    setTranscript([]);
+    setProviderConversationId(null);
+    setAgentBriefReady(false);
+    setScopeApproved(false);
+    setPriceApproved(false);
+    setBrief({ businessType: business.category.toLowerCase() as ConfirmedBrief['businessType'], businessName: business.name, pages: '', style: '', colour: '', content: '', price: '', features: [] });
+    grantIdRef.current = null;
+    connectOperationRef.current = null;
+    completionOperationRef.current = conversationOperationKey('founder-complete', leadId);
     try {
       if (conversation.status === 'error') conversation.endSession();
-      const idempotencyKey = sessionOperationRef.current ?? conversationOperationKey('session', leadId);
-      sessionOperationRef.current = idempotencyKey;
+      const idempotencyKey = conversationOperationKey('session', leadId);
       const grant = await authorizeBrowserConversation(leadId, idempotencyKey);
       grantIdRef.current = grant.grantId;
       setBindingState('idle');
@@ -128,6 +181,7 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
         signedUrl: grant.signedUrl,
         connectionType: 'websocket',
         userId: leadId,
+        dynamicVariables: grant.dynamicVariables,
       });
     } catch (cause) {
       setError(publicError(cause));
@@ -149,39 +203,22 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
   }
 
   async function approveBuild() {
-    if (!pendingOutcome || !providerConversationId || bindingState !== 'bound' || approvingBuild) return;
+    if (!providerConversationId || bindingState !== 'bound' || approvingBuild || !scopeApproved || !priceApproved) return;
     setApprovingBuild(true);
     setError(null);
     try {
+      const outcome = buildConfirmedConversationOutcome(transcript, brief);
       await completeFounderConversation({
         leadId,
         providerConversationId,
-        outcome: pendingOutcome,
-        idempotencyKey: conversationOperationKey('founder-complete', leadId),
+        outcome,
+        idempotencyKey: completionOperationRef.current ?? conversationOperationKey('founder-complete', leadId),
       });
-      setPendingOutcome(null);
-      onNotice('Build brief approved · Codex build and Vercel deployment are now running.');
+      setScopeApproved(false);
+      setPriceApproved(false);
+      onNotice('Customer-confirmed deal submitted · the approved build workflow is continuing.');
     } catch (cause) {
       setError(`Build approval failed: ${publicError(cause)}`);
-    } finally {
-      setApprovingBuild(false);
-    }
-  }
-
-  async function approveFounderDemoBuild() {
-    if (!providerConversationId || bindingState !== 'bound' || approvingBuild) return;
-    setApprovingBuild(true);
-    setError(null);
-    try {
-      await completeFounderConversation({
-        leadId,
-        providerConversationId,
-        outcome: createFounderDemoOutcome(business),
-        idempotencyKey: conversationOperationKey('founder-demo-complete', leadId),
-      });
-      onNotice(`Founder-approved demo deal for ${business.name} · Codex build and Vercel deployment are now running.`);
-    } catch (cause) {
-      setError(`Demo build approval failed: ${publicError(cause)}`);
     } finally {
       setApprovingBuild(false);
     }
@@ -202,7 +239,7 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
         : conversation.status === 'connecting'
           ? 'Connecting securely'
           : providerConversationId
-            ? 'Call ended'
+          ? 'Chat ended'
             : 'Ready for consent';
 
   return (
@@ -210,29 +247,19 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
       <div className="conversation-panel__header">
         <div className="call-avatar"><Bot size={21} /><span /></div>
         <div>
-          <span>AgentFront Sales Agent · ElevenLabs REAL</span>
+          <span>AgentFront Sales Agent · ElevenLabs live text chat</span>
           <strong>{statusLabel}</strong>
           {providerConversationId && <code title={providerConversationId}>ID · {providerConversationId}</code>}
         </div>
         <div className="call-controls">
           <button
-            className={`icon-button${conversation.isMuted ? ' is-active' : ''}`}
-            type="button"
-            aria-label={conversation.isMuted ? 'Unmute microphone' : 'Mute microphone'}
-            title={conversation.isMuted ? 'Unmute microphone' : 'Mute microphone'}
-            disabled={!connected}
-            onClick={() => conversation.setMuted(!conversation.isMuted)}
-          >
-            {conversation.isMuted ? <Phone size={17} /> : <Bot size={17} />}
-          </button>
-          <button
             className="end-call"
             type="button"
-            aria-label="End live conversation"
-            title="End live conversation"
+            aria-label="End live text chat"
+            title="End live text chat"
             disabled={!connected && conversation.status !== 'connecting'}
             onClick={endRealConversation}
-          ><Phone size={16} /></button>
+          ><X size={16} /></button>
         </div>
       </div>
 
@@ -241,8 +268,8 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
           <div className="conversation-consent__icon"><Bot size={24} /></div>
           <h3>{conversation.status === 'error' ? 'Retry the real text conversation' : 'Start a real text conversation'}</h3>
           <p>
-            Chat with your ElevenLabs sales agent to agree the {business.name} site. The transcript stays connected
-            to this exact project, and the agent can prepare a build brief for your approval.
+            Chat with your ElevenLabs sales agent about the {business.name} site. This is a browser text session,
+            not a phone call. Review the captured conversation and confirm the exact scope and price before a build.
           </p>
           <button
             className="button button--primary"
@@ -258,14 +285,9 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
 
       {(providerConversationId || conversation.status !== 'disconnected') && (
         <>
-          <div className={`waveform${conversation.isSpeaking ? ' is-speaking' : ''}`} aria-hidden="true">
-            {Array.from({ length: 48 }, (_, index) => (
-              <span key={index} style={{ height: `${12 + ((index * 17) % 38)}px`, animationDelay: `${index * 28}ms` }} />
-            ))}
-          </div>
           <div className="transcript-head">
-            <div><span>Live provider transcript</span><span className="pill pill--neutral">{connected ? conversation.mode : 'ended'}</span></div>
-            <span className="conversation-mode">{connected ? (conversation.isMuted ? 'Microphone muted' : 'Microphone live') : 'Session closed'}</span>
+            <div><span>Captured provider messages</span><span className="pill pill--neutral">{connected ? 'text chat' : 'ended'}</span></div>
+            <span className="conversation-mode">{connected ? 'Browser text session live' : 'Session closed'}</span>
           </div>
           <div className="transcript" aria-live="polite">
             {transcript.length === 0 && (
@@ -280,7 +302,7 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
                   ? <span className="transcript-avatar"><Bot size={15} /></span>
                   : <span className="avatar avatar--3">RO</span>}
                 <div>
-                  <div><strong>{line.speaker === 'agent' ? 'AgentFront' : 'Restaurant Owner'}</strong><time>{line.time}</time></div>
+                  <div><strong>{line.speaker === 'agent' ? 'AgentFront' : `${business.name} owner`}</strong><time>{line.time}</time></div>
                   <p>{line.text}</p>
                 </div>
               </div>
@@ -288,7 +310,7 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
           </div>
           <div className="transcript-status">
             <span className={`dot dot--${error ? 'red' : connected ? 'green' : 'muted'}${connected ? ' dot--pulse' : ''}`} />
-            <span>{error ?? (connected ? `${conversation.mode === 'speaking' ? 'Agent speaking' : 'Listening'} · transcript stays in this page until governed completion` : 'Realtime session ended')}</span>
+            <span>{error ?? (connected ? 'Text chat is live · only provider messages shown above can be submitted as transcript' : 'Realtime text session ended')}</span>
             {bindingState === 'failed' && providerConversationId
               ? <button type="button" onClick={() => void bindConversation(providerConversationId)}><RefreshCw size={12} /> Retry binding</button>
               : <span>{bindingState === 'bound' ? 'Server correlated' : 'No seeded transcript'}</span>}
@@ -297,14 +319,32 @@ function LiveConversationPanel({ leadId, business, onNotice }: LiveElevenLabsCon
             <input value={message} onChange={(event) => { setMessage(event.target.value); conversation.sendUserActivity(); }} placeholder={`Describe the ${business.name} website you want…`} />
             <button className="button button--primary" type="submit" disabled={message.trim().length === 0}><ArrowRight size={16} /> Send</button>
           </form>}
-          {pendingOutcome && <div className="conversation-approval">
-            <span><ShieldCheck size={17} /><strong>Build brief received from ElevenLabs</strong><small>Review the discussion, then explicitly authorize Codex and Vercel to continue.</small></span>
-            <button className="button button--primary" type="button" disabled={approvingBuild || bindingState !== 'bound'} onClick={() => void approveBuild()}>{approvingBuild ? 'Starting build…' : 'Approve build & deploy'}</button>
-          </div>}
-          {connected && !pendingOutcome && bindingState === 'bound' && <div className="conversation-approval conversation-approval--demo">
-            <span><ShieldCheck size={17} /><strong>Demo video shortcut</strong><small>After your live chat, use an explicitly founder-approved sample brief to show the real Codex build and Vercel deployment.</small></span>
-            <button className="button button--secondary" type="button" disabled={approvingBuild} onClick={() => void approveFounderDemoBuild()}>{approvingBuild ? 'Starting build…' : 'Close demo deal & build'}</button>
-          </div>}
+          {bindingState === 'bound' && <form className="conversation-brief" onSubmit={(event) => { event.preventDefault(); void approveBuild(); }}>
+            <div className="conversation-brief__heading">
+              <ShieldCheck size={20} />
+              <div>
+                <strong>Confirm the deal from this conversation</strong>
+                <p>{agentBriefReady ? 'The agent suggested values below. Edit them to match what you actually agreed.' : 'Enter the scope you agreed in the chat. No sample transcript, features or price are pre-approved.'}</p>
+              </div>
+            </div>
+            <div className="conversation-brief__fields">
+              <label>Pages to build <input value={brief.pages} onChange={(event) => { setBrief({ ...brief, pages: event.target.value }); setScopeApproved(false); }} placeholder="Home, Menu, Location, Contact" required maxLength={800} /></label>
+              <label>Visual direction <input value={brief.style} onChange={(event) => { setBrief({ ...brief, style: event.target.value }); setScopeApproved(false); }} placeholder="For example: warm, modern, local" required maxLength={200} /></label>
+              <label>Primary colour <input value={brief.colour} onChange={(event) => { setBrief({ ...brief, colour: event.target.value }); setScopeApproved(false); }} placeholder="Optional" maxLength={100} /></label>
+              <label>Agreed price (INR) <input value={brief.price} onChange={(event) => { setBrief({ ...brief, price: event.target.value }); setPriceApproved(false); }} inputMode="numeric" pattern="[0-9]+" placeholder="Enter exact agreed price" required /></label>
+              <label className="conversation-brief__wide">Customer’s specific requirements <textarea value={brief.content} onChange={(event) => { setBrief({ ...brief, content: event.target.value }); setScopeApproved(false); }} placeholder="What did you ask for in the chat? Include any verified menu, contact, copy or design details." required maxLength={1000} rows={3} /></label>
+            </div>
+            <fieldset className="conversation-brief__features">
+              <legend>Features included in the agreed scope</legend>
+              {featureOptions[brief.businessType].map((option) => <label key={option.key}><input type="checkbox" checked={brief.features.includes(option.key)} onChange={(event) => { setBrief({ ...brief, features: event.target.checked ? [...brief.features, option.key] : brief.features.filter((key) => key !== option.key) }); setScopeApproved(false); }} /> {option.label}</label>)}
+            </fieldset>
+            <label className="conversation-brief__confirmation"><input type="checkbox" checked={scopeApproved} onChange={(event) => setScopeApproved(event.target.checked)} /> I am the customer/founder and approve these pages, features and requirements.</label>
+            <label className="conversation-brief__confirmation"><input type="checkbox" checked={priceApproved} onChange={(event) => setPriceApproved(event.target.checked)} /> I agree to pay exactly ₹{brief.price || '—'} for this scope.</label>
+            <div className="conversation-brief__footer">
+              <small>Requires a captured agent turn and customer turn. Submitting starts the governed build; a browser text chat does not prove a phone call.</small>
+              <button className="button button--primary" type="submit" disabled={approvingBuild || !scopeApproved || !priceApproved || !transcript.some((line) => line.speaker === 'agent') || !transcript.some((line) => line.speaker === 'owner')}>{approvingBuild ? 'Submitting confirmed deal…' : 'Approve scope, price & build'}</button>
+            </div>
+          </form>}
         </>
       )}
     </section>

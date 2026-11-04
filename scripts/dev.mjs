@@ -1,7 +1,11 @@
 import { spawn } from "node:child_process";
 
 const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
-const commands = ["dev:api", "dev:web"];
+// The worker needs the same PostgreSQL URL as the API. Without one, local
+// development remains browser/API-only and never claims to run durable jobs.
+const commands = process.env.DATABASE_URL?.trim()
+  ? ["dev:api", "dev:worker", "dev:web"]
+  : ["dev:api", "dev:web"];
 const children = commands.map((script) => spawn(npmExecutable, ["run", script], {
   env: process.env,
   shell: false,

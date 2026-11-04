@@ -1,24 +1,47 @@
 # AgentFront
 
-**Autonomous business acquisition and digital delivery, operated from one control center.**
+> Architecture transition: AgentFront is becoming a five-agent autonomous
+> cloud agency with a read-only control tower. The Phase 1 PostgreSQL
+> workflow/event/agent-run/job foundation is in this repository. The controlled
+> SpiceRoute path now supports a founder-approved Sarvam/Vobiz call, correlated
+> post-call requirements, bounded OpenAI edits to an existing template, QA and
+> Vercel CLI deployment. GitHub automation, Google/Meta publishing, general
+> autonomous customer delivery, Wispr supervision and AWS deployment are still
+> future work. A SpiceRoute-only Dodo test-checkout path exists; it is not a
+> general Delivery Agent.
 
-AgentFront discovers underserved local businesses, qualifies the commercial opportunity, opens the CRM lifecycle, runs a governed sales conversation, converts the agreement into a validated software specification, builds from an industry template, performs deterministic QA, deploys, and records revenue.
+Phase 1 requires PostgreSQL: `npm run db:migrate` after configuring
+`DATABASE_URL`. Authenticated `GET /api/workflows`, `/api/agent-runs`, and
+`GET /api/events?after=<event-id>` expose persisted status/history;
+`/api/events/stream` replays recent persisted milestones and polls across
+processes. `POST /api/control/emergency-stop` with `{ "stopped": true }`
+pauses new PostgreSQL-backed worker activity (resume with `false`); setting
+`GLOBAL_EMERGENCY_STOP=true` is a stronger deployment-level stop. With
+`DATABASE_URL` configured, `npm run dev` starts the API, worker and web app with
+the same database so queued work can advance. The credential-free browser
+journey remains explicitly a local demo.
 
-This repository is a production-oriented reference implementation with a complete credential-free Stage‑1 demo. Mocked providers are always labelled `DEMO`; the product never presents seeded data as live provider data.
+**An autonomous digital-agency target, observed from one control center.**
+
+The existing prototype can discover underserved local businesses and run parts of a guarded CRM, sales, template-build, QA, and deployment journey. It does not yet run the complete five-agent flow unattended in the cloud. The dashboard is being migrated from a demo-driven execution UI into a supervision layer.
+
+This repository includes a credential-free Stage‑1 demo and a Phase 1 durable foundation. Seeded or simulated provider output must remain labelled `DEMO`; a completed browser walkthrough is not evidence of a real call, ad impression, payment, or cloud deployment.
 
 > AgentFront does not merely generate websites. AgentFront operates the acquisition-to-delivery business around them.
 
 ## What is implemented
 
-- Founder operations center with live KPIs, funnel, pipeline revenue, agent activity, and system health
+- Founder operations center, with persisted workflow/event/run panels in PostgreSQL mode and some legacy demo-derived metrics elsewhere
 - Map-style business discovery with 32 realistic Chennai businesses across four MVP industries
 - Opportunity intelligence, deterministic scoring, and qualification explanations
 - A guarded, idempotent lead state machine with a canonical `AF-YYYY-NNNNNN` project identifier
-- Complete SpiceRoute Kitchen journey: discovery → CRM → conversation → requirements → negotiation → spec → build → QA → deployment → revenue
-- Realtime demo event simulation and an SSE-capable API boundary
-- Real/demo provider contracts for Places, Freshworks, ElevenLabs, Codex, and deployment
+- SpiceRoute Kitchen legacy walkthrough: discovery → CRM → browser conversation → requirements → spec → build → QA → deployment, with real/demo provider badges
+- Controlled real SpiceRoute path: Discover review → Sarvam/Vobiz outbound call → correlated post-call result → OpenAI configuration edit → QA → Vercel
+- PostgreSQL-backed event cursor and polling SSE feed; a separate in-memory demo event path remains
+- Real/demo provider contracts for Places, Freshworks, Sarvam/Vobiz,
+  ElevenLabs, OpenAI/Claude/Codex, and deployment
 - Governed quote and negotiation-floor calculations outside the language model
-- Normalized Prisma schema for PostgreSQL and a Redis-ready worker boundary
+- Additive Prisma `Workflow`, `AgentRun`, `SystemControl`, and a PostgreSQL-leased job boundary; Redis is not used
 - Four responsive, configuration-driven industry templates and a generated SpiceRoute site
 - Deterministic QA rules, provider mapping, transition, pricing, specification, and idempotency tests
 - Light and dark themes, responsive navigation, persistent demo state, explicit provider badges, retries, and error visibility
@@ -27,37 +50,15 @@ This repository is a production-oriented reference implementation with a complet
 
 ```mermaid
 flowchart LR
-  Founder[Founder / Operator] --> Web[Founder Control Center]
-  Web <-->|REST + SSE| API[AgentFront API]
-  API --> O[Orchestrator]
-  O --> DB[(PostgreSQL)]
-  O --> Places{Places Provider}
-  O --> CRM{CRM Provider}
-  O --> Voice{Conversation Provider}
-  O --> Dev{Developer Provider}
-  O --> Deploy{Deployment Provider}
-
-  Places --> GP[Google Places]
-  Places --> DP[Demo Places]
-  CRM --> FW[Freshworks]
-  CRM --> DCRM[Demo CRM]
-  Voice --> EL[ElevenLabs]
-  Voice --> DV[Demo Conversation]
-  Dev --> CX[Codex CLI]
-  Dev --> DD[Demo Developer]
-  Deploy --> RealDeploy[Vercel / compatible]
-  Deploy --> DemoDeploy[Demo Deployment]
-
-  O --> Templates[Industry templates]
-  Templates --> Sites[Ownership-bound runtime workspaces]
-  Sites --> QA[Deterministic QA]
-  QA --> Deploy
-
-  O -. production scaling path .-> Q[(Redis / Durable Queue)]
-  Q -.-> Worker[Restricted Worker]
+  Web[AgentFront dashboard] <-->|REST + polling SSE| API[AgentFront API]
+  API --> DB[(PostgreSQL workflow, events, jobs)]
+  DB --> Worker[Sales + transitional workflow worker]
+  Worker --> Legacy[Existing orchestrator and providers]
+  Legacy --> Templates[Four industry templates]
+  Legacy --> DB
 ```
 
-Agents never call each other directly. Every action is requested and recorded through the orchestrator. Provider adapters are selected from server-side configuration, and the canonical AgentFront ID follows the record through every integration.
+This diagram shows the **current PostgreSQL mode**, not the completed AWS design. The API atomically persists accepted continuation work; the worker claims it separately. Current provider-stage execution still uses the legacy orchestrator. See [ARCHITECTURE.md](./ARCHITECTURE.md) and [docs/AWS_DEPLOYMENT.md](./docs/AWS_DEPLOYMENT.md) for the target and gaps.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for boundaries, invariants, and deployment notes.
 
@@ -67,11 +68,11 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for boundaries, invariants, and deploym
 apps/
   web/          React founder control center
   api/          REST and SSE boundary
-  worker/       typed job-boundary scaffold for the future distributed topology
+  worker/       PostgreSQL-leased sales and transitional workflow workers
 packages/
   database/     Prisma schema and seed data
   integrations/ real/demo provider contracts and adapters
-  orchestration/state machine, idempotency, event flow
+  orchestration/ state machines, idempotency, control-tower interfaces
   scoring/      opportunity and commercial rules
   types/        shared domain/API contracts
   ui/           shared UI boundary
@@ -108,18 +109,29 @@ npm run dev:worker
 
 The default API URL is `http://localhost:4000`. The web demo remains usable if the API is not running so a product walkthrough cannot be blocked by infrastructure.
 
-## Stage‑1 demo
+## Controlled SpiceRoute sales-to-site demo
+
+This path deliberately keeps one founder approval before a real phone call. All
+steps after a validated won call are worker-driven. The call target is restricted
+to the configured, consented SpiceRoute demo number.
 
 1. Open **Discover**.
 2. Keep `Restaurant`, `Sholinganallur, Chennai`, and `5 km`, then select **Search market**.
 3. Select **SpiceRoute Kitchen**, which has no website and scores 91/100.
-4. Open its intelligence view and select **Start autonomous pipeline**.
-5. Watch the CRM creation and sales room. Requirements are extracted while the transcript advances.
-6. Observe the scripted demo conversation accept the governed ₹7,200 offer (the configured ₹7,200 floor cannot be crossed).
-7. Follow the pipeline visualizer while the project spec, template build, QA, deployment, CRM stage, and revenue update automatically.
-8. Open the delivered website from the deployment card.
+4. Open its intelligence view and select **Approve & call with Sarvam**.
+5. Confirm the real call during the configured `10:00–19:00 Asia/Kolkata` window.
+6. Complete the conversation as the opted-in owner. Sarvam must return the
+   required post-call fields and an explicit `WON` result at exactly ₹7,200.
+7. Watch Sales Operations. AgentFront validates the callback, creates the
+   specification, invokes OpenAI once on the existing restaurant template,
+   runs deterministic QA, and deploys through Vercel automatically.
+8. Open the recorded live URL from Deployments.
 
-This is the last major manual action in the demo. Starting the same lead twice is protected by stage guards and idempotency keys.
+Before using this path, configure `.env` from
+[docs/SARVAM_SALES_AGENT.md](./docs/SARVAM_SALES_AGENT.md), install
+`cloudflared`, and start with `npm run dev:sarvam`. The call button stays locked
+unless the public callback resolves to this AgentFront API. Starting the same
+lead twice is protected by state guards and idempotency keys.
 
 See [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) for the narrated walkthrough.
 See [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) for zero-credential, PostgreSQL, hybrid, and real-provider setup.
@@ -143,8 +155,9 @@ Each external boundary chooses a provider at runtime:
 | --- | --- | --- |
 | Discovery | Google Places | Seeded Chennai market |
 | CRM | Freshworks CRM | Local Demo CRM |
-| Conversation | ElevenLabs realtime | Scripted demo conversation |
-| Development | Restricted Codex CLI | Deterministic build event simulator |
+| Sales telephony | Sarvam Voice Agents + Vobiz | Explicit demo telephony |
+| Browser conversation (legacy) | ElevenLabs realtime | Scripted demo conversation |
+| Development | Claude bounded template customizer or restricted Codex CLI | Deterministic build event simulator |
 | Deployment | Configured deployment provider | Demo deployment record |
 
 Provider selection is surfaced in Settings and on pipeline stages with `REAL` or `DEMO` badges. A mock URL is explicitly identified as simulated.
@@ -172,10 +185,18 @@ Copy `.env.example`; never commit `.env`.
 | `ELEVENLABS_API_KEY` | server-only conversation API key |
 | `ELEVENLABS_AGENT_ID` | governed sales agent ID |
 | `ELEVENLABS_TOOL_SECRET` | separate server-only Bearer secret for governed REAL conversation completion; never reuse the API key |
+| `TELEPHONY_PROVIDER` | set `sarvam` for the controlled SpiceRoute outbound-call adapter |
+| `DEMO_BUSINESS_PHONE` | explicitly consented private call destination; never sourced from the seeded listing |
+| `DEMO_PUBLIC_BUSINESS_PHONE` | optional for calling; separately allowlisted website phone required only for a later build handoff |
+| `SARVAM_*` | server-only Sarvam app, Vobiz connection and correlated HTTPS callback configuration |
+| `DEVELOPER_PROVIDER` | set `claude` for bounded existing-template customization |
+| `ANTHROPIC_API_KEY` | server-only Claude API key |
 | `CODEX_ENABLED` | permits the restricted local provider |
 | `DEPLOY_PROVIDER` | deployment adapter selector |
 | `DEPLOY_TOKEN` | server-only provider token |
+| `VERCEL_TEAM_ID` | optional Vercel team ID/slug; the token must be authorized for it |
 | `DEMO_MODE` | Leave unset for automatic per-provider selection; set `true` only to force all demo adapters |
+| `GLOBAL_EMERGENCY_STOP` | Server-side stop that prevents new PostgreSQL-backed worker activity when `true` |
 
 The frontend receives only public status and, after explicit consent, a short-lived ElevenLabs signed URL from a `no-store` response. Signed URLs are held only long enough to initialize the SDK and are never written to the lead aggregate. Provider secrets, Codex authentication, and deployment tokens remain server-side.
 
@@ -201,9 +222,18 @@ Operator setup is still required for automatic post-call progression: configure 
 
 For production, serve the browser and API same-site so the built-in founder session protects REST and SSE consistently, and rotate both the API token and optional session signing secret through your secret manager. Do not place `AGENTFRONT_API_TOKEN`, `ELEVENLABS_API_KEY`, or `ELEVENLABS_TOOL_SECRET` in browser configuration.
 
-### Codex
+### OpenAI, Claude and Codex
 
-The Stage‑1 orchestrator copies a selected template into an ignored runtime workspace below `.agentfront-runtime/generated-sites/`, writes and validates `project_spec.json`, and invokes `codex exec` with an argument array inside that project directory. Customer content is written as data and never interpolated into a shell command. stdout/stderr becomes structured build events. Codex `workspace-write` is write containment, not a tenant read-isolation boundary; production multi-tenant builds require a container or OS sandbox with only the project mounted and a minimal environment.
+The preferred controlled demo provider is OpenAI through the Responses API. It receives the approved
+`project_spec.json` and the selected template's existing
+`business.config.json`, then may return only a bounded replacement
+configuration. Repository creation, QA and deployment remain deterministic
+code. Set `DEVELOPER_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL`. Claude remains an optional legacy API provider, and Codex CLI remains a legacy local fallback.
+
+The optional Codex provider invokes `codex exec` inside the copied project
+directory. Its `workspace-write` mode is write containment, not tenant read
+isolation; production multi-tenant builds require a dedicated container or OS
+sandbox with only that project mounted and a minimal environment.
 
 ### Deployment
 
@@ -211,7 +241,7 @@ Deployment is behind a provider contract. QA must pass before the orchestrator c
 
 ## Client template system
 
-Templates are complete websites rather than prompt scaffolds. `business.config.json` controls copy, contact details, theme, enabled sections, and purchased features. Codex is reserved for approved requirements that exceed configuration.
+Templates are complete websites rather than prompt scaffolds. `business.config.json` controls copy, contact details, theme, enabled sections, and purchased features. OpenAI is the preferred bounded configuration editor for the controlled flow; Codex remains an optional legacy provider for approved requirements that exceed deterministic configuration changes.
 
 The generated example is available at `generated-sites/AF-2026-000001/index.html` and includes:
 
@@ -230,14 +260,18 @@ docker compose up -d postgres
 # Set DATABASE_URL=postgresql://agentfront:agentfront@localhost:5432/agentfront in .env
 npm run db:migrate
 npm run db:seed
-npm run dev:api
+npm run dev
 ```
 
-The Compose file also includes Redis for future queue work, but the Stage‑1 worker does not consume it and does not require `REDIS_URL`.
+The Compose file also includes Redis for future queue work, but the current
+worker does not consume it and does not require `REDIS_URL`. When
+`DATABASE_URL` is present, `npm run dev` starts the PostgreSQL-backed worker
+alongside the API and web app. Use the individual `dev:*` commands only when
+you intentionally want separate terminals.
 
-The checked-in initial migration creates the normalized workflow schema; `npm run db:seed` idempotently loads the 32 demo businesses and the Stage‑1 campaign. `npm run db:generate` regenerates the client, and `npm run db:push` is available for disposable local schema iteration.
+The migrations include the original schema plus additive payment and Phase 1 control-tower tables. `npm run db:seed` loads the demo businesses and Stage‑1 campaign. `npm run db:generate` regenerates the client; reserve `npm run db:push` for disposable local schema iteration.
 
-With `DATABASE_URL` configured, the API uses PostgreSQL for reference data, full lead aggregates, the canonical project sequence, transitions, events, revenue, and transition idempotency records. Without it—or when `DEMO_MODE=true` explicitly forces the demo—the API uses the in-memory store. Authenticated `/api/integrations/health` reports the selected persistence mode; a configured but unreachable database is reported as degraded and is never silently replaced by memory. Workflow execution is currently guarded within one API process, so operate a single orchestrating API replica until distributed job claiming is implemented.
+With `DATABASE_URL` configured, the API uses PostgreSQL for reference data, lead aggregates, transitions, events, workflows, agent attempts, and leased jobs. Without it—or when `DEMO_MODE=true` explicitly forces the demo—the API uses an in-memory store. Authenticated `/api/integrations/health` reports the selected persistence mode; an unreachable configured database is reported as degraded, not silently replaced by memory. PostgreSQL-backed API continuation is claimed by a separate worker, but legacy provider-stage side effects still require reconciliation before horizontal production scaling.
 
 ## Quality gates
 
@@ -262,11 +296,11 @@ Tests cover scoring, state transitions, pricing floors, schema validation, mappi
 - Retryable stages keep their last safe state and expose **Retry**.
 - Stage guards reject invalid transitions.
 - Repository guards deduplicate repeated starts and transitions; provider adapters use correlation and idempotency keys for ordinary retries.
-- Long-running pipeline, retry, and completion commands are acknowledged before orchestration continues in the guarded Stage‑1 background runner.
+- In PostgreSQL mode, accepted pipeline continuation is atomically recorded and queued before acknowledgement; the separate worker claims and renews the lease. The in-memory demo still uses an in-process runner.
 - An emergency stop prevents new work without erasing state.
 - Demo and real provider health are visible before a campaign starts.
 
-The Stage‑1 background runner is intentionally single-process. Redis/BullMQ claiming, a transactional outbox, provider-specific crash reconciliation, and horizontally scaled workers remain roadmap work.
+PostgreSQL job claiming, event persistence, and a CRM outbox are implemented. SQS/EventBridge adapters, full five-role handlers, provider-specific crash reconciliation, and a deployed/scaled AWS runtime remain roadmap work.
 
 ## Screenshots
 
@@ -280,14 +314,17 @@ The Stage‑1 background runner is intentionally single-process. Redis/BullMQ cl
 
 ![Generated SpiceRoute client website](docs/screenshots/client-website.png)
 
-Start the demo pipeline to watch the transcript, requirement extraction, accepted offer, build events, QA, and deployment activate in sequence.
+For the controlled real path, inspect SpiceRoute in Discover and approve its
+Sarvam call once; a validated won callback then advances OpenAI, QA and Vercel
+without another UI action. The legacy browser walkthrough remains explicitly
+simulated.
 
 ## Roadmap
 
 - Durable queue execution with Redis/BullMQ and resumable distributed locks
 - Google Maps territory polygons and saved territory views
 - Human approval thresholds for high-discount or regulated campaigns
-- Call-channel adapters beyond browser realtime sessions
+- Broader telephony-provider coverage and production call reconciliation
 - Multiple deployment vendors and DNS automation
 - Template versioning, visual regression tests, and Lighthouse gates
 - Multi-tenant RBAC, audit export, SSO, billing, and per-tenant encryption

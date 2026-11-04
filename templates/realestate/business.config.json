@@ -1,0 +1,143 @@
+{
+  "meta": {
+    "template": "realestate-v1",
+    "preview": true,
+    "previewLabel": "Real-estate preview — verified listings only",
+    "commerceMode": "enquiry"
+  },
+  "theme": {
+    "ink": "#18241d",
+    "paper": "#eee9df",
+    "accent": "#a55f35",
+    "gold": "#d1b464"
+  },
+  "business": {
+    "name": "Terra & Key",
+    "descriptor": "Homes · Land · Advisory",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "mapsLink": ""
+  },
+  "hero": {
+    "eyebrow": "Curated homes · Chennai",
+    "title": "Find a place that feels inevitable.",
+    "description": "A cinematic property experience for qualified enquiries and private visits.",
+    "cta": "View properties",
+    "looks": [
+      {
+        "name": "City apartment",
+        "tone": "navy",
+        "note": "Connected urban living with light-filled interiors."
+      },
+      {
+        "name": "Courtyard villa",
+        "tone": "rust",
+        "note": "Private space, warm materials and room to grow."
+      },
+      {
+        "name": "Coastal residence",
+        "tone": "gold",
+        "note": "Calm architecture shaped around the evening light."
+      }
+    ]
+  },
+  "categories": [
+    {
+      "index": "01",
+      "name": "Apartments",
+      "description": "Curated city homes."
+    },
+    {
+      "index": "02",
+      "name": "Villas",
+      "description": "Private residences."
+    },
+    {
+      "index": "03",
+      "name": "Land",
+      "description": "Verified plots."
+    },
+    {
+      "index": "04",
+      "name": "Commercial",
+      "description": "Spaces for visibility."
+    }
+  ],
+  "offer": {
+    "enabled": true,
+    "eyebrow": "Private advisory",
+    "title": "A focused shortlist, shaped around your life.",
+    "description": "Verified buyer services and viewing arrangements.",
+    "terms": "No investment return claims in preview mode."
+  },
+  "catalog": [
+    {
+      "name": "The Courtyard",
+      "type": "Apartment",
+      "category": "Apartments",
+      "tone": "navy",
+      "description": "A well-connected city home with an open living plan and landscaped court.",
+      "detail": "2 & 3 BHK · Viewing by appointment"
+    },
+    {
+      "name": "Bayline House",
+      "type": "Villa",
+      "category": "Villas",
+      "tone": "rust",
+      "description": "A private residence with warm materials, shaded terraces and generous family spaces.",
+      "detail": "4 BHK · Private viewing"
+    },
+    {
+      "name": "The Grove",
+      "type": "Land",
+      "category": "Land",
+      "tone": "cream",
+      "description": "A verified residential plot in a growing neighbourhood with clear access information.",
+      "detail": "Verified plot · Enquire for area"
+    },
+    {
+      "name": "High Street Studio",
+      "type": "Commercial",
+      "category": "Commercial",
+      "tone": "gold",
+      "description": "A visible, flexible address designed for a local retail or professional practice.",
+      "detail": "Commercial · Site visit available"
+    }
+  ],
+  "store": {
+    "title": "See the space. Read the neighbourhood. Make a clear move.",
+    "description": "Use this section for verified fitting services, alterations, size availability and store amenities.",
+    "hours": [
+      {
+        "days": "Monday – Saturday",
+        "time": "Add verified hours"
+      },
+      {
+        "days": "Sunday",
+        "time": "Add verified hours"
+      }
+    ]
+  },
+  "listings": [
+    {
+      "name": "The Courtyard",
+      "caption": "Verified listing placeholder",
+      "tone": "indigo",
+      "tag": "Featured 01"
+    },
+    {
+      "name": "Bayline House",
+      "caption": "Verified listing placeholder",
+      "tone": "ember",
+      "tag": "Featured 02"
+    },
+    {
+      "name": "The Grove",
+      "caption": "Verified listing placeholder",
+      "tone": "sand",
+      "tag": "Featured 03"
+    }
+  ]
+}

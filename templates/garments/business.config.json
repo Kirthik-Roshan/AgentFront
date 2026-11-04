@@ -24,7 +24,12 @@
     "eyebrow": "New season · Preview collection",
     "title": "Clothes with a sense of place.",
     "description": "A composed storefront for local garment businesses — built for discovery, collection enquiries and visits to the shop.",
-    "cta": "Explore collections"
+    "cta": "Explore collections",
+    "looks": [
+      { "name": "Indigo study", "tone": "navy", "note": "A cooler, quietly tailored mood." },
+      { "name": "Earth & ember", "tone": "rust", "note": "Warm colour, confident presence." },
+      { "name": "Golden hour", "tone": "gold", "note": "A softer glow for occasion dressing." }
+    ]
   },
   "categories": [
     { "index": "01", "name": "Everyday wear", "description": "A configurable category for easy, repeat pieces." },
@@ -45,10 +50,10 @@
     "terms": "No live offer is published in this template preview."
   },
   "catalog": [
-    { "name": "Draped silhouettes", "type": "Style story", "tone": "navy" },
-    { "name": "Hand-feel details", "type": "Material story", "tone": "rust" },
-    { "name": "Finishing touches", "type": "Accessory story", "tone": "cream" },
-    { "name": "Made for occasions", "type": "Seasonal story", "tone": "gold" }
+    { "name": "Draped silhouettes", "type": "Style story", "category": "Everyday wear", "tone": "navy", "description": "A preview of fluid shapes and easy layering.", "detail": "Shape and drape" },
+    { "name": "Hand-feel details", "type": "Material story", "category": "Textiles", "tone": "rust", "description": "A closer look at texture and the way fabric catches light.", "detail": "Texture study" },
+    { "name": "Finishing touches", "type": "Accessory story", "category": "Menswear", "tone": "cream", "description": "Small details that make a look feel considered.", "detail": "Details and accents" },
+    { "name": "Made for occasions", "type": "Seasonal story", "category": "Celebration", "tone": "gold", "description": "An occasionwear mood board to inspire your next visit.", "detail": "Occasion styling" }
   ],
   "store": {
     "title": "See the cloth. Feel the weave. Find your fit.",

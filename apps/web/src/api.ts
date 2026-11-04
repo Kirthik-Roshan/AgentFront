@@ -1,4 +1,5 @@
 import type { ActivityEvent, Business } from './types';
+import type { InboundResolution, SalesBusinessDetail, SalesOverviewSnapshot } from './features/sales/types';
 
 export type ApiConnectionState = 'connecting' | 'connected' | 'offline';
 
@@ -16,10 +17,10 @@ export type PersistenceHealth = {
 };
 
 export type IntegrationHealth = {
-  integration: 'places' | 'crm' | 'conversation' | 'developer' | 'deployment';
+  integration: 'places' | 'crm' | 'support' | 'conversation' | 'telephony' | 'jobQueue' | 'scheduler' | 'developer' | 'deployment';
   provider: string;
   mode: 'REAL' | 'DEMO';
-  status: 'CONNECTED' | 'DEMO' | 'DEGRADED' | 'NOT_CONFIGURED';
+  status: 'CONNECTED' | 'DEMO' | 'DEGRADED' | 'UNAVAILABLE' | 'NOT_CONFIGURED';
   message: string;
   checkedAt: string;
 };
@@ -41,6 +42,12 @@ export type AgentFrontEvent = {
   status: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
   durationMs: number | null;
   createdAt: string;
+  businessId?: string | null;
+  workflowId?: string | null;
+  correlationId?: string | null;
+  sourceAgent?: string | null;
+  retryCount?: number;
+  payload?: Record<string, unknown> | null;
 };
 
 export type CampaignSummary = {
@@ -62,7 +69,7 @@ export type PipelineAggregate = {
   campaign?: CampaignSummary;
   project?: {
     projectId: string;
-    templateType: 'restaurant' | 'salon' | 'garments' | 'mechanic';
+    templateType: 'restaurant' | 'salon' | 'garments' | 'mechanic' | 'clinic' | 'education' | 'realestate' | 'fitness' | 'bakery' | 'legal' | 'spa' | 'dental' | 'physiotherapy' | 'petcare' | 'catering' | 'events' | 'photography' | 'interiors' | 'travel' | 'movers' | 'appliance' | 'trades' | 'detailing' | 'drivingschool' | 'laundry' | 'furniture' | 'devicerepair' | 'printing' | 'florist' | 'jewellery' | 'tailoring' | 'cloudkitchen';
     status: string;
     qaStatus?: string;
   } | null;
@@ -93,6 +100,9 @@ export type DashboardSnapshot = {
   campaigns: CampaignSummary[];
   leads: PipelineAggregate[];
   events: AgentFrontEvent[];
+  workflows?: Array<{ id: string; businessId: string; correlationId: string; status: string; currentAgent: string | null; currentTask: string | null; updatedAt: string }>;
+  agentRuns?: Array<{ id: string; workflowId: string; businessId: string; agentType: string; status: string; retryCount: number; startedAt: string; completedAt: string | null }>;
+  emergencyStopped?: boolean;
 };
 
 export type DashboardProjection = {
@@ -106,6 +116,115 @@ export type DashboardProjection = {
   deploymentUrl: string | null;
   events: ActivityEvent[];
 };
+
+export type SpiceRoutePaymentStatus = {
+  projectId: string;
+  mode: 'TEST';
+  status: 'NOT_STARTED' | 'CHECKOUT_PENDING' | 'CHECKOUT_READY' | 'TEST_PAID';
+  checkoutUrl: string | null;
+  checkoutSessionId: string | null;
+  paymentId: string | null;
+  paidAt: string | null;
+  crmSyncedAt: string | null;
+  crmLastError: string | null;
+  configured: boolean;
+};
+
+export type SpiceRouteCheckoutSession = {
+  projectId: string;
+  mode: 'TEST';
+  sessionId: string;
+  checkoutUrl: string;
+};
+
+const dodoTestCheckoutOrigin = 'https://test.checkout.dodopayments.com';
+const spiceRoutePaymentStates = new Set<SpiceRoutePaymentStatus['status']>([
+  'NOT_STARTED',
+  'CHECKOUT_PENDING',
+  'CHECKOUT_READY',
+  'TEST_PAID',
+]);
+
+const isAgentFrontProjectId = (value: unknown): value is string => typeof value === 'string' && /^AF-\d{4}-\d{6}$/.test(value);
+
+/**
+ * Treat the API response as untrusted at the browser boundary. Checkout links
+ * may only open on Dodo's exact test-mode origin; lookalike hosts, credentials,
+ * alternate ports and non-HTTPS URLs are rejected.
+ */
+export function validateDodoTestCheckoutUrl(value: unknown): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error('Dodo did not return a test checkout URL.');
+  }
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error('Dodo returned an invalid test checkout URL.');
+  }
+  if (
+    url.origin !== dodoTestCheckoutOrigin ||
+    url.protocol !== 'https:' ||
+    url.hostname !== 'test.checkout.dodopayments.com' ||
+    url.username.length > 0 ||
+    url.password.length > 0
+  ) {
+    throw new Error('Checkout was blocked because it is not on Dodo\'s verified test host.');
+  }
+  return url.href;
+}
+
+function validateSpiceRouteCheckoutSession(value: unknown): SpiceRouteCheckoutSession {
+  const session = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+  if (
+    !session ||
+    !isAgentFrontProjectId(session.projectId) ||
+    session.mode !== 'TEST' ||
+    typeof session.sessionId !== 'string' ||
+    !/^cks_[A-Za-z0-9_-]{8,128}$/.test(session.sessionId)
+  ) {
+    throw new Error('Dodo returned an untrusted test checkout session.');
+  }
+  return {
+    projectId: session.projectId,
+    mode: 'TEST',
+    sessionId: session.sessionId,
+    checkoutUrl: validateDodoTestCheckoutUrl(session.checkoutUrl),
+  };
+}
+
+function validateSpiceRoutePaymentStatus(value: unknown): SpiceRoutePaymentStatus {
+  const status = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+  const nullableStrings = ['checkoutSessionId', 'paymentId', 'paidAt', 'crmSyncedAt', 'crmLastError'] as const;
+  if (
+    !status ||
+    !isAgentFrontProjectId(status.projectId) ||
+    status.mode !== 'TEST' ||
+    typeof status.status !== 'string' ||
+    !spiceRoutePaymentStates.has(status.status as SpiceRoutePaymentStatus['status']) ||
+    typeof status.configured !== 'boolean' ||
+    !nullableStrings.every((field) => status[field] === null || typeof status[field] === 'string') ||
+    (status.checkoutUrl !== null && typeof status.checkoutUrl !== 'string')
+  ) {
+    throw new Error('AgentFront returned an invalid SpiceRoute payment record.');
+  }
+  return {
+    projectId: status.projectId,
+    mode: 'TEST',
+    status: status.status as SpiceRoutePaymentStatus['status'],
+    checkoutUrl: status.checkoutUrl === null ? null : validateDodoTestCheckoutUrl(status.checkoutUrl),
+    checkoutSessionId: status.checkoutSessionId as string | null,
+    paymentId: status.paymentId as string | null,
+    paidAt: status.paidAt as string | null,
+    crmSyncedAt: status.crmSyncedAt as string | null,
+    crmLastError: status.crmLastError as string | null,
+    configured: status.configured,
+  };
+}
 
 export type CRMBoardDeal = {
   id: string;
@@ -123,6 +242,7 @@ export type CRMBoardSnapshot = {
   provider: string;
   consoleUrl: string | null;
   deals: CRMBoardDeal[];
+  ignoredProviderRecords?: number;
 };
 
 export type BrowserConversationGrant = {
@@ -131,12 +251,13 @@ export type BrowserConversationGrant = {
   signedUrl: string;
   expiresAt: string;
   mode: 'REAL';
+  dynamicVariables?: Record<string, string | number | boolean>;
 };
 
 export type DiscoveredBusiness = {
   id: string;
   name: string;
-  category: 'restaurant' | 'salon' | 'garments' | 'mechanic';
+  category: 'restaurant' | 'salon' | 'garments' | 'mechanic' | 'clinic' | 'education' | 'realestate' | 'fitness' | 'bakery' | 'legal' | 'spa' | 'dental' | 'physiotherapy' | 'petcare' | 'catering' | 'events' | 'photography' | 'interiors' | 'travel' | 'movers' | 'appliance' | 'trades' | 'detailing' | 'drivingschool' | 'laundry' | 'furniture' | 'devicerepair' | 'printing' | 'florist' | 'jewellery' | 'tailoring' | 'cloudkitchen';
   address: string;
   city: string;
   latitude: number;
@@ -145,6 +266,9 @@ export type DiscoveredBusiness = {
   rating: number;
   reviewCount: number;
   website: string | null;
+  googleMapsUrl: string | null;
+  photoName?: string | null;
+  photoAttribution?: { displayName: string; uri: string | null } | null;
   socialLinks: Record<string, string>;
   digitalPresenceStatus: 'NONE' | 'WEAK' | 'ADEQUATE' | 'STRONG';
   source: 'GOOGLE_PLACES' | 'DEMO';
@@ -228,18 +352,73 @@ export function getDashboard(): Promise<DashboardSnapshot> {
   return request<DashboardSnapshot>('/api/dashboard', { cache: 'no-store' }, 8_000);
 }
 
+export async function getSpiceRoutePaymentStatus(): Promise<SpiceRoutePaymentStatus> {
+  const status = await request<unknown>('/api/demo/spiceroute/payment', { cache: 'no-store' }, 8_000);
+  return validateSpiceRoutePaymentStatus(status);
+}
+
+export async function createSpiceRouteTestCheckout(input: {
+  email: string;
+  name?: string;
+  idempotencyKey: string;
+}): Promise<SpiceRouteCheckoutSession> {
+  const session = await request<unknown>('/api/demo/spiceroute/checkout', {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': input.idempotencyKey },
+    body: JSON.stringify({ email: input.email, ...(input.name ? { name: input.name } : {}) }),
+  }, 25_000);
+  return validateSpiceRouteCheckoutSession(session);
+}
+
+export function getSalesOverview(): Promise<SalesOverviewSnapshot> {
+  return request<SalesOverviewSnapshot>('/api/sales/overview', { cache: 'no-store' }, 12_000);
+}
+
+export function getSalesBusinessDetail(businessId: string): Promise<SalesBusinessDetail> {
+  return request<SalesBusinessDetail>(`/api/sales/businesses/${encodeURIComponent(businessId)}`, { cache: 'no-store' }, 12_000);
+}
+
+export function getBusinessPhotoUrl(businessId: string, width = 240): string {
+  const query = new URLSearchParams({ businessId, width: String(width) });
+  return `${apiBase}/api/places/business-photo?${query.toString()}`;
+}
+
+export function postSalesBusinessAction<T>(
+  businessId: string,
+  action: string,
+  body: Record<string, unknown>,
+  idempotencyKey: string,
+): Promise<T> {
+  return request<T>(`/api/sales/businesses/${encodeURIComponent(businessId)}/${action}`, {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify(body),
+  }, 25_000);
+}
+
+export function simulateInboundSalesCall(callerPhone: string, idempotencyKey: string): Promise<InboundResolution> {
+  return request<InboundResolution>('/api/sales/inbound', {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify({ callerPhone, providerCallId: `demo-inbound-${crypto.randomUUID()}` }),
+  }, 25_000);
+}
+
 export function getCRMBoard(): Promise<CRMBoardSnapshot> {
   return request<CRMBoardSnapshot>('/api/crm/deals', { cache: 'no-store' }, 12_000);
 }
 
 export async function discoverMarket(input: {
   location: string;
-  category: DiscoveredBusiness['category'];
+  category: string;
   radiusMetres: number;
 }): Promise<DiscoveryResult> {
   const query = new URLSearchParams({
     location: input.location,
-    businessType: input.category,
+    vertical: input.category,
     radiusMetres: String(input.radiusMetres),
   });
   const result = await requestEnvelope<DiscoveredBusiness[]>(`/api/discover?${query.toString()}`, {}, 12_000);
@@ -289,6 +468,14 @@ export function mapDiscoveredBusinesses(result: DiscoveryResult): Business[] {
     rating: business.rating,
     reviews: business.reviewCount,
     phone: Boolean(business.phone),
+    phoneNumber: business.phone,
+    address: business.address,
+    websiteUrl: business.website,
+    googleMapsUrl: business.googleMapsUrl,
+    photoUrl: business.photoName
+      ? `${apiBase}/api/places/photo?name=${encodeURIComponent(business.photoName)}&width=900`
+      : null,
+    photoAttribution: business.photoAttribution ?? null,
     instagram: Boolean(business.socialLinks.instagram),
     website: Boolean(business.website),
     websiteQuality: business.digitalPresenceStatus === 'WEAK' ? 'poor' : business.website ? 'good' : 'none',
@@ -379,6 +566,14 @@ export function updateCampaign(action: 'start' | 'pause' | 'emergency-stop'): Pr
   });
 }
 
+export function setEmergencyStop(stopped: boolean): Promise<{ stopped: boolean }> {
+  return request<{ stopped: boolean }>('/api/control/emergency-stop', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stopped }),
+  });
+}
+
 export function subscribeToAgentEvents(
   onEvent: (event: AgentFrontEvent) => void,
   onConnectionChange?: (connected: boolean) => void,
@@ -410,6 +605,11 @@ export function mapAgentEvent(event: AgentFrontEvent): ActivityEvent {
     leadId: event.leadId,
     projectId: event.projectId,
     campaignId: event.campaignId,
+    businessId: event.businessId,
+    workflowId: event.workflowId,
+    correlationId: event.correlationId,
+    sourceAgent: event.sourceAgent,
+    retryCount: event.retryCount,
   };
 }
 

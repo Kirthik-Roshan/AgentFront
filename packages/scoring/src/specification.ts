@@ -39,6 +39,8 @@ export function createProjectSpecification(
     },
     pages: [...requirements.pages],
     features: { ...requirements.features },
+    clientBrief: [...requirements.contentRequirements, ...requirements.notes]
+      .map((item) => item.trim()).filter(Boolean).slice(0, 50),
     design: {
       style: requirements.branding.style,
       ...(requirements.branding.primaryColour
@@ -70,7 +72,7 @@ export function validateProjectSpecification(input: unknown): SpecificationValid
     if (!/^\+?[0-9][0-9 -]{7,}$/.test(candidate.business.phone ?? "")) {
       issues.push({ path: "business.phone", message: "Must be a valid verified phone number." });
     }
-    if (!["restaurant", "salon", "garments", "mechanic"].includes(candidate.business.type ?? "")) {
+    if (!["restaurant", "salon", "garments", "mechanic", "clinic", "education", "realestate", "fitness", "bakery", "legal"].includes(candidate.business.type ?? "")) {
       issues.push({ path: "business.type", message: "Unsupported business type." });
     }
   }
@@ -99,6 +101,12 @@ export function validateProjectSpecification(input: unknown): SpecificationValid
     issues.push({ path: "features", message: "Features must be an object." });
   } else if (Object.values(candidate.features).some((value) => typeof value !== "boolean")) {
     issues.push({ path: "features", message: "Feature values must be boolean." });
+  }
+  if (candidate.clientBrief !== undefined && (
+    !Array.isArray(candidate.clientBrief) || candidate.clientBrief.length > 50 ||
+    !candidate.clientBrief.every((item) => isNonEmptyString(item) && item.length <= 2_000)
+  )) {
+    issues.push({ path: "clientBrief", message: "Must contain at most 50 non-empty strings of at most 2,000 characters." });
   }
   if (!candidate.design || !isNonEmptyString(candidate.design.style)) {
     issues.push({ path: "design.style", message: "A design style is required." });

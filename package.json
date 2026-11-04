@@ -12,8 +12,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "dev:web": "vite --config apps/web/vite.config.ts",
+    "dev": "node --env-file-if-exists=.env scripts/dev.mjs",
+    "dev:sarvam": "node --env-file-if-exists=.env scripts/dev-sarvam.mjs",
+    "dev:sarvam-relay": "node --env-file-if-exists=.env scripts/sarvam-webhook-relay.mjs",
+    "dev:web": "npm run sync:templates && vite --config apps/web/vite.config.ts",
     "dev:api": "node --env-file-if-exists=.env --import tsx apps/api/src/server.ts",
     "dev:worker": "node --env-file-if-exists=.env --import tsx apps/worker/src/index.ts",
     "db:generate": "npm run db:generate --workspace @agentfront/database",
@@ -21,7 +23,8 @@
     "db:push": "npm run db:push --workspace @agentfront/database",
     "db:seed": "npm run db:seed --workspace @agentfront/database",
     "build": "npm run typecheck && npm run build:web",
-    "build:web": "vite build --config apps/web/vite.config.ts",
+    "build:web": "npm run sync:templates && vite build --config apps/web/vite.config.ts",
+    "sync:templates": "node scripts/sync-template-previews.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -42,14 +45,20 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "6.0.5",
+    "deepmerge-ts": "8.0.2",
     "eslint": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
     "globals": "latest",
+    "mysql2": "3.24.4",
     "tsx": "latest",
     "typescript": "~5.9.3",
     "typescript-eslint": "latest",
     "vite": "8.2.1",
     "vitest": "latest"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "mysql2": "3.24.4"
   }
 }

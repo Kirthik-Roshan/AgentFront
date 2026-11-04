@@ -7,8 +7,12 @@ coverage/
 .DS_Store
 .vite/
 .agentfront-runtime/
+.agentfront-tools/
+apps/web/public/templates/
 *.tsbuildinfo
 generated-sites/*/node_modules/
 generated-sites/*/dist/
 packages/database/src/generated/prisma/
 !generated-sites/AF-2026-000001/
+.vercel
+.env*

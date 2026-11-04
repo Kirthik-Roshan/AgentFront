@@ -1,0 +1,130 @@
+{
+  "meta": {
+    "template": "fitness-v1",
+    "preview": true,
+    "previewLabel": "Fitness studio template preview — verified content only"
+  },
+  "theme": {
+    "ink": "#121414",
+    "paper": "#f3efe7",
+    "accent": "#ef634d",
+    "sage": "#c9ef5b"
+  },
+  "business": {
+    "name": "Form & Fire",
+    "descriptor": "Strength · Mobility · Coaching",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "bookingLink": "",
+    "mapsLink": ""
+  },
+  "hero": {
+    "eyebrow": "Training built around you",
+    "title": "Move stronger. Live bigger.",
+    "description": "Coach-led strength, mobility and conditioning for real people and measurable progress.",
+    "cta": "Book a trial"
+  },
+  "services": [
+    {
+      "number": "01",
+      "name": "Strength foundations",
+      "description": "Progressive small-group coaching with clear movement standards."
+    },
+    {
+      "number": "02",
+      "name": "Mobility reset",
+      "description": "Guided mobility and recovery for resilient everyday movement."
+    },
+    {
+      "number": "03",
+      "name": "Personal coaching",
+      "description": "One-to-one plans shaped around your goals and training history."
+    },
+    {
+      "number": "04",
+      "name": "Conditioning club",
+      "description": "Focused sessions that build capacity without chaos."
+    }
+  ],
+  "pricing": {
+    "note": "Publish only verified memberships and trial terms.",
+    "items": [
+      {
+        "service": "Studio trial",
+        "duration": "60 min",
+        "price": "Ask studio"
+      },
+      {
+        "service": "Small-group strength",
+        "duration": "Monthly",
+        "price": "Ask studio"
+      },
+      {
+        "service": "Personal coaching",
+        "duration": "Per session",
+        "price": "Ask studio"
+      },
+      {
+        "service": "Mobility reset",
+        "duration": "45 min",
+        "price": "Ask studio"
+      }
+    ]
+  },
+  "gallery": [
+    {
+      "title": "The training floor",
+      "label": "Replace with approved studio photography",
+      "tone": "sand"
+    },
+    {
+      "title": "Coach-led sessions",
+      "label": "Show genuine classes with permission",
+      "tone": "rose"
+    },
+    {
+      "title": "Recovery corner",
+      "label": "Feature verified facilities",
+      "tone": "sage"
+    }
+  ],
+  "team": [
+    {
+      "name": "Head coach",
+      "role": "Add verified certification",
+      "initials": "HC"
+    },
+    {
+      "name": "Strength coach",
+      "role": "Add verified certification",
+      "initials": "SC"
+    },
+    {
+      "name": "Mobility coach",
+      "role": "Add verified certification",
+      "initials": "MC"
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Add a genuine member progress story with permission.",
+      "author": "Verified member"
+    },
+    {
+      "quote": "Use this space for a concise coaching outcome.",
+      "author": "Verified member"
+    }
+  ],
+  "hours": [
+    {
+      "days": "Monday – Saturday",
+      "time": "Add verified class hours"
+    },
+    {
+      "days": "Sunday",
+      "time": "Add verified hours"
+    }
+  ]
+}

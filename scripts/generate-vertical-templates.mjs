@@ -1,0 +1,51 @@
+import { mkdir, copyFile, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+const root = resolve(process.cwd(), 'templates');
+const templates = [
+  ['spa','Serein House','Spa & Beauty','Rituals that quiet the world.','Soft-touch therapies, glow rituals and unhurried appointments.','layout-playful','#b77a86',['Signature skin ritual','Botanical body therapy','Bridal glow edit']],
+  ['dental','Ivory Dental','Dental Studio','A brighter smile, thoughtfully made.','Modern dentistry with calm explanations and precise care.','layout-architectural','#278a9b',['Preventive care','Smile design','Restorative dentistry']],
+  ['physiotherapy','Kinetic Care','Physiotherapy','Move freely. Return stronger.','Evidence-led recovery plans for everyday movement and sport.','layout-kinetic','#e05b3f',['Pain assessment','Sports rehabilitation','Mobility programme']],
+  ['petcare','Goodfolk Pets','Pet Care & Vet','Care they can feel.','Gentle grooming, preventive health and veterinary support under one roof.','layout-playful','#e07c45',['Wellness checks','Breed-aware grooming','Vaccination plans']],
+  ['catering','Gather & Grain','Catering','A table worth gathering around.','Celebration menus, considered service and memorable regional flavour.','layout-culinary','#b85031',['Wedding feasts','Corporate tables','Intimate gatherings']],
+  ['events','Afterglow Studio','Events & Weddings','Moments, composed beautifully.','Concept-to-celebration planning with confident production and personal detail.','layout-cinematic','#c94766',['Wedding direction','Event production','Floral styling']],
+  ['photography','Still & Story','Photography','Hold on to what it felt like.','Editorial photographs with honest light and an easy experience.','layout-cinematic','#c66b42',['Weddings','Portrait stories','Brand campaigns']],
+  ['interiors','Form Habitat','Interior Design','Space that sounds like you.','Warm, functional interiors shaped around how you really live.','layout-architectural','#8f653e',['Residential design','Retail spaces','Turnkey delivery']],
+  ['travel','Elsewhere Co.','Travel','Take the long way home.','Soulful itineraries, local expertise and quietly extraordinary stays.','layout-cinematic','#167c8b',['Custom journeys','Group escapes','Honeymoons']],
+  ['movers','ShiftWorks','Packers & Movers','Moving day, minus the chaos.','Tracked, careful relocations for homes, offices and everything between.','layout-utility','#df5c2f',['Home relocation','Office moves','Secure storage']],
+  ['appliance','CoolFix Works','Appliance Repair','Back to working. Fast.','Verified technicians for AC and appliance diagnosis at your doorstep.','layout-utility','#177fc4',['AC service','Appliance repair','Annual care']],
+  ['trades','Local Current','Electrical & Plumbing','Skilled help. Right when needed.','Background-checked local experts with transparent estimates.','layout-utility','#dc9b1f',['Electrical fixes','Plumbing care','Emergency visits']],
+  ['detailing','Gloss District','Auto Detailing','Every reflection, earned.','Precision wash, paint correction and ceramic protection for discerning owners.','layout-kinetic','#29a7d8',['Studio detail','Paint correction','Ceramic protection']],
+  ['drivingschool','Good Turn','Driving School','Confidence in every turn.','Patient, structured lessons for real roads and lifelong safety.','layout-kinetic','#ef7042',['Beginner course','Refresher lessons','Licence preparation']],
+  ['laundry','Fold Society','Laundry & Dry Clean','Fresh, folded, finished.','Doorstep garment care with careful cleaning and reliable turnaround.','layout-catalogue','#4178b8',['Everyday laundry','Dry cleaning','Express service']],
+  ['furniture','Common Form','Furniture & Decor','Objects for a life well lived.','Considered furniture, tactile materials and rooms with soul.','layout-catalogue','#9a6540',['Living collection','Dining edit','Custom furniture']],
+  ['devicerepair','Circuit House','Device Repair','Your tech, back in rhythm.','Clear diagnostics and careful repairs for phones, laptops and tablets.','layout-utility','#6558e8',['Phone repair','Laptop service','Data recovery']],
+  ['printing','Boldmark','Print & Signage','Make your name impossible to miss.','Print, signage and display systems made for the real world.','layout-canvas','#ef4e37',['Brand signage','Large format','Retail print']],
+  ['florist','Wild Stem','Flowers & Gifts','Say it without saying a word.','Seasonal flowers and thoughtful gifts, arranged with a lighter touch.','layout-playful','#c65b76',['Daily bouquets','Wedding flowers','Curated gifts']],
+  ['jewellery','Aurum Atelier','Fine Jewellery','Made to become an heirloom.','Modern Indian fine jewellery shaped by craft, proportion and memory.','layout-catalogue','#a97822',['Bridal edit','Everyday fine','Bespoke pieces']],
+  ['tailoring','Cut & Kin','Tailoring Boutique','Made for your exact life.','Contemporary tailoring, precise fittings and expressive Indian craft.','layout-canvas','#973f59',['Occasion wear','Modern classics','Alterations']],
+  ['cloudkitchen','Nightjar Kitchen','Cloud Kitchen','Big flavour. Zero waiting room.','A delivery-first kitchen with bold menus and fast neighbourhood fulfilment.','layout-culinary','#dc4d2f',['House specials','Meal boxes','Party orders']],
+];
+
+const html = (slug, name, category, headline, lede, layout) => `<!doctype html>
+<html lang="en" class="${layout}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="${lede}"><title>${name} · ${category}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet"><link rel="stylesheet" href="../_shared-template.css"><link rel="stylesheet" href="styles.css"></head><body>
+<a class="skip" href="#main">Skip to content</a><div class="progress"><i></i></div><div class="preview" id="preview">Production template</div>
+<header><a class="brand" href="#main"><b id="brand">${name}</b><small>${category}</small></a><button class="menu" aria-expanded="false" aria-controls="nav">Menu</button><nav id="nav"><a href="#services">Services</a><a href="#work">Experience</a><a href="#visit">Visit</a></nav><a class="header-cta" id="booking" href="#contact">Make an enquiry ↗</a></header>
+<main id="main"><section class="hero"><div class="hero-copy"><p class="eyebrow">${category} · Chennai</p><h1>${headline}</h1><p class="lede">${lede}</p><a class="primary" href="#services">Explore the experience <span>↘</span></a><div class="hero-index"><span>AF / ${slug.toUpperCase()}</span><span>Scroll to discover</span></div></div><figure class="hero-media"><img src="assets/hero.png" alt="${category} experience" fetchpriority="high"><figcaption class="orbit"><span>LOCALLY</span><b>made</b></figcaption></figure></section>
+<div class="marquee" aria-hidden="true"><div>Thoughtful service · Local expertise · Clear pricing · Easy enquiry · Thoughtful service · Local expertise · Clear pricing · Easy enquiry ·</div></div>
+<section class="manifest"><p class="reveal">A local experience designed with <em>clarity, character and care.</em></p><div id="proof"></div></section>
+<section class="services" id="services"><header class="section-head reveal"><p class="eyebrow">What we do</p><h2>Choose what feels right.</h2></header><div id="serviceGrid"></div></section>
+<section class="work" id="work"><header class="section-head reveal"><p class="eyebrow">The experience</p><h2>Details make the difference.</h2></header><div id="gallery"></div></section>
+<section class="voices"><header class="section-head reveal"><p class="eyebrow">Local voices</p><h2>Known by the company we keep.</h2></header><div id="quotes"></div></section>
+<section class="contact" id="contact"><div><p class="eyebrow">Start here</p><h2>Let’s make it happen.</h2></div><div class="contact-actions"><a class="primary" id="whatsapp" href="#">Chat on WhatsApp ↗</a><a id="phone" href="#">Call the studio</a></div></section>
+<section class="visit" id="visit"><div><p class="eyebrow">Find us</p><h2 id="location">Chennai</h2><a id="maps" href="#">Open in maps ↗</a></div><div id="hours"></div></section></main>
+<footer><span>© <b id="year"></b> <b>${name}</b></span><span>Designed for local discovery · Built for mobile</span></footer><script type="module" src="../_shared-template.js"></script></body></html>`;
+
+for (const [slug,name,category,headline,lede,layout,accent,services] of templates) {
+  const dir = resolve(root, slug); await mkdir(resolve(dir, 'assets'), { recursive: true });
+  await writeFile(resolve(dir, 'index.html'), html(slug,name,category,headline,lede,layout));
+  await writeFile(resolve(dir, 'styles.css'), `:root{--accent:${accent}}\n`);
+  const config = {meta:{previewLabel:`${category} template preview — replace with verified business content`},theme:{accent},business:{name,location:'Chennai, Tamil Nadu',phoneDisplay:'+91 90000 00000',phoneLink:'tel:+919000000000',whatsappLink:'https://wa.me/919000000000',bookingLink:'#contact',mapsLink:'https://maps.google.com/?q=Chennai'},proof:[{value:'4.9',label:'local rating'},{value:'300+',label:'happy clients'},{value:'Same day',label:'response'}],services:services.map((x,i)=>({number:String(i+1).padStart(2,'0'),name:x,description:`A considered ${x.toLowerCase()} experience, tailored to your needs with clear next steps.`})),gallery:[{title:'Signature experience',label:'Designed around you'},{title:'Local craft',label:'People who care'},{title:'Every detail',label:'Thoughtfully finished'}],testimonials:[{quote:`${name} made the whole experience feel effortless from the first conversation.`,author:'Local client · Chennai'},{quote:'Clear, warm and genuinely attentive—the kind of service you recommend immediately.',author:'Verified customer'}],hours:[{days:'Monday — Saturday',time:'9:00 — 19:00'},{days:'Sunday',time:'By appointment'}]};
+  await writeFile(resolve(dir, 'business.config.json'), JSON.stringify(config,null,2)+'\n');
+}
+console.log(`Generated ${templates.length} vertical templates.`);

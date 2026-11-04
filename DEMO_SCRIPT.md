@@ -1,4 +1,4 @@
-# Stage‑1 demo script
+# Controlled SpiceRoute demo script
 
 Target duration: 5–7 minutes.
 
@@ -8,7 +8,9 @@ Open **Overview**.
 
 “AgentFront is not a website generator. It operates the entire acquisition and delivery lifecycle of a digital agency. The founder sets market and commercial policy, then watches the system work.”
 
-Point out the live operation status, explicit Demo Mode badge, provider health, revenue, funnel, and activity stream.
+Point out the live operation status, provider health, funnel, and activity
+stream. Be explicit about which capabilities are `REAL`, `DEMO`, or degraded;
+do not present a preview or test payment as production activity.
 
 ## 2. Discover a market
 
@@ -18,7 +20,9 @@ Open **Discover**. Keep:
 - Industry: Restaurant
 - Radius: 5 km
 
-Select **Search market**. Explain that these results are clearly seeded because Google credentials are absent; with credentials, the same provider contract uses Places APIs.
+Select **Search market**. Explain whether the provider badge identifies a live
+Google search or the controlled seeded market. The seeded SpiceRoute record is
+intentional: only the configured, opted-in demo number may be called.
 
 Select **SpiceRoute Kitchen** and correlate its highlighted card and map marker.
 
@@ -31,32 +35,51 @@ Open business intelligence. Show the 91/100 opportunity score:
 - rating above 4.0
 - strong review activity
 
-Select **Start autonomous pipeline**. This is the last major founder action.
+Show the 10:00–19:00 IST calling window and the connected Sarvam, Claude,
+PostgreSQL worker and Vercel health rows. Select **Approve & call with Sarvam**
+and confirm the real-call warning. This single review is the final founder
+execution action.
 
 ## 4. Watch commercial execution
 
-Show CRM creation and the Live Sales Room. As the conversation advances, point to the transcript and the live extraction of menu, gallery, WhatsApp ordering, Google Maps, style, budget, and mobile priority.
+Answer the opted-in demo phone and act as the SpiceRoute owner. Confirm the
+fixed ₹7,200 website scope, the restaurant requirements, and only a business
+contact number approved for publication. Show Sales Operations while the call
+and its correlated provider status update.
 
-Explain that AgentFront—not the language model—calculates ₹7,999 and enforces the ₹7,200 negotiation floor.
+Explain that AgentFront—not the voice model—enforces the exact ₹7,200 demo
+price and validates the required post-call fields.
 
-Let the demo reach **Deal won — ₹7,200**.
+After the call, show the Sarvam callback produce **Deal won — ₹7,200**. If the
+callback or required fields fail validation, show the real failure instead of
+manually advancing the pipeline.
 
 ## 5. Watch digital delivery
 
-Open the lead pipeline. Point out the canonical `AF-2026-000001` ID on CRM, specification, build, QA, deployment, and revenue records.
+Open the lead pipeline. Point out the canonical project ID on the specification,
+build, QA, deployment, and Freshworks records where the CRM is connected. An
+older deployed SpiceRoute example remains separate from the new call-derived
+project.
 
 Show:
 
-- validated `project_spec.json`
+- validated call-derived `project_spec.json`
 - Restaurant v1 template selection
-- developer build events
+- bounded Claude configuration event and changed configuration
 - deterministic QA score
-- deployment stage and URL
+- real Vercel deployment stage and URL
 
-Open the generated SpiceRoute website. Confirm WhatsApp ordering is present and reservations are absent because they were not purchased.
+Open the deployed SpiceRoute website and connect visible content to the
+requirements confirmed on the call. Emphasize that Claude altered the existing
+restaurant template rather than generating a new application from scratch.
 
 ## 6. Close
 
-Return to Overview and show the updated deployed count, deal, revenue, and activity history.
+Return to Overview and show the deal, build, deployment, timestamps, retries,
+and activity history. Show the Google/Instagram/YouTube cards as unpublished ad
+previews. If the optional Dodo test checkout is configured, label it **TEST**
+and treat only its verified webhook as payment success.
 
-“A business went from no website to deployed digital presence. AgentFront also acquired, qualified, sold, governed, recorded, and delivered the work.”
+“One reviewed, consented call became validated requirements, a bounded template
+change, deterministic QA, and a real deployment. AgentFront records every
+handoff; previews and test payments stay honestly labelled.”

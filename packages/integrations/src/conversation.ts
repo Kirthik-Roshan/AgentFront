@@ -25,13 +25,13 @@ const demoTranscript = (projectId: string, at: string): TranscriptTurn[] => [
   {
     id: `${projectId}-turn-3`,
     speaker: "AGENT",
-    text: "The approved package is ₹7,999. Within the configured policy, the final offer can be ₹7,200.",
+    text: "The approved package is ₹7,999. Within the configured policy, the final offer can be ₹100.",
     at,
   },
   {
     id: `${projectId}-turn-4`,
     speaker: "CUSTOMER",
-    text: "₹7,200 works. Please keep the design premium, warm and easy to use on phones.",
+    text: "₹100 works. Please keep the design premium, warm and easy to use on phones.",
     at,
   },
 ];
@@ -51,7 +51,7 @@ export class DemoConversationProvider implements ConversationProvider {
         outcome: {
           transcript: demoTranscript(input.projectId, at),
           summary:
-            "Owner accepted a premium mobile-first restaurant website with menu, gallery, WhatsApp ordering and Google Maps for ₹7,200.",
+            "Owner accepted a premium mobile-first restaurant website with menu, gallery, WhatsApp ordering and Google Maps for ₹100.",
           sentiment: "POSITIVE",
           requirements: {
             businessType: input.business.category,

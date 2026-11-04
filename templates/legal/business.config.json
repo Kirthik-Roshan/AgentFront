@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "template": "legal-v1",
+    "preview": true,
+    "previewLabel": "Legal advisory template preview — verified content only"
+  },
+  "theme": {
+    "ink": "#101b2c",
+    "paper": "#f4efe5",
+    "accent": "#7d2838",
+    "gold": "#b79455"
+  },
+  "business": {
+    "name": "Meridian Counsel",
+    "descriptor": "Business · Property · Private client",
+    "location": "Your city",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "mapsLink": "",
+    "enquiryLink": ""
+  },
+  "hero": {
+    "eyebrow": "Clear counsel for consequential decisions",
+    "title": "Know where you stand. Decide what comes next.",
+    "description": "A discreet legal practice experience for founders, families and property owners.",
+    "cta": "Request a consultation"
+  },
+  "categories": [
+    {
+      "number": "01",
+      "name": "Business advisory",
+      "description": "Contracts, formation and practical commercial guidance."
+    },
+    {
+      "number": "02",
+      "name": "Property matters",
+      "description": "Due diligence, documentation and transaction support."
+    },
+    {
+      "number": "03",
+      "name": "Dispute strategy",
+      "description": "Clear options, risk assessment and representation."
+    },
+    {
+      "number": "04",
+      "name": "Private client",
+      "description": "Estate, succession and personal legal planning."
+    }
+  ],
+  "collections": [
+    {
+      "title": "Founder desk",
+      "label": "Commercial counsel",
+      "tone": "navy"
+    },
+    {
+      "title": "Property desk",
+      "label": "Transactions and diligence",
+      "tone": "oxblood"
+    },
+    {
+      "title": "Private client",
+      "label": "Planning and protection",
+      "tone": "parchment"
+    }
+  ],
+  "offer": {
+    "eyebrow": "First conversation",
+    "title": "Clarity before complexity.",
+    "description": "Use the verified enquiry path to describe the matter without sharing confidential detail.",
+    "note": "No legal advice is provided through this preview."
+  },
+  "catalog": [
+    {
+      "name": "Contract review",
+      "category": "Business",
+      "label": "Scope after conflict check",
+      "tone": "navy"
+    },
+    {
+      "name": "Property diligence",
+      "category": "Property",
+      "label": "Scope after document review",
+      "tone": "rust"
+    },
+    {
+      "name": "Dispute consultation",
+      "category": "Disputes",
+      "label": "Scope after intake",
+      "tone": "cream"
+    },
+    {
+      "name": "Estate planning",
+      "category": "Private client",
+      "label": "Scope after consultation",
+      "tone": "gold"
+    }
+  ],
+  "store": {
+    "eyebrow": "Consultation",
+    "title": "Begin with a careful conversation.",
+    "description": "Replace with verified office, jurisdiction and appointment information.",
+    "hours": [
+      {
+        "days": "Monday – Friday",
+        "time": "Add verified hours"
+      },
+      {
+        "days": "Saturday",
+        "time": "By appointment"
+      }
+    ]
+  }
+}

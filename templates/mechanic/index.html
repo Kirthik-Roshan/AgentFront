@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="motion.css">
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -26,8 +27,34 @@
     <section class="hero">
       <div class="hero-backdrop" role="img" aria-label="Professional automobile workshop"></div>
       <div class="hero-overlay"></div>
-      <div class="hero-copy shell reveal"><p class="eyebrow" data-field="hero.eyebrow">Straight answers. Skilled hands.</p><h1 data-field="hero.title">Keep moving with service you can trust.</h1><p data-field="hero.description">A fast, clear workshop website system built around service discovery, urgent contact and direct WhatsApp enquiries.</p><div class="hero-actions"><a class="button" href="#contact" data-field="hero.primaryCta">Request a service</a><a class="outline-link" href="#services" data-field="hero.secondaryCta">View workshop services</a></div></div>
+      <a class="hero-mobile-signal" href="#diagnostic"><span class="hero-mobile-signal__bars" aria-hidden="true"><i></i><i></i><i></i></span> Interactive service guide <span aria-hidden="true">↗</span></a>
+      <div class="hero-copy shell"><p class="eyebrow" data-field="hero.eyebrow">Straight answers. Skilled hands.</p><h1 data-field="hero.title">Keep moving with service you can trust.</h1><p data-field="hero.description">A fast, clear workshop website system built around service discovery, urgent contact and direct WhatsApp enquiries.</p><div class="hero-actions"><a class="button" href="#diagnostic" data-field="hero.primaryCta">Request a service</a><a class="outline-link" href="#services" data-field="hero.secondaryCta">View workshop services</a></div></div>
+      <aside class="hero-console" aria-label="Interactive service preview">
+        <div class="hero-console__top"><span><i aria-hidden="true"></i> SERVICE SIGNAL</span><span>INTERACTIVE PREVIEW / 01</span></div>
+        <div class="hero-console__radar" aria-hidden="true"><span class="hero-console__radar-ring"></span><span class="hero-console__radar-core">N</span><span class="hero-console__sweep"></span></div>
+        <p class="hero-console__eyebrow">Choose what you notice</p><h2 id="heroSignalTitle">Warning light</h2><p class="hero-console__description" id="heroSignalDescription" aria-live="polite">Start with a diagnostic review before deciding on repairs.</p>
+        <div class="hero-console__choices" id="heroSignalChoices" role="group" aria-label="Preview common workshop concerns"></div>
+        <a class="hero-console__action" href="#diagnostic">Open the service guide <span aria-hidden="true">↗</span></a>
+      </aside>
       <div class="status-strip"><div><span class="pulse"></span> Workshop status</div><strong>Confirm today’s availability</strong><span data-field="business.location">Your neighbourhood</span></div>
+    </section>
+
+    <section class="diagnostic shell" id="diagnostic" aria-labelledby="diagnosticTitle">
+      <div class="diagnostic-heading reveal"><div><p class="eyebrow" data-field="triage.eyebrow">Quick service guide</p><h2 id="diagnosticTitle" data-field="triage.title">Tell us what your vehicle is doing.</h2></div><p data-field="triage.description">Choose a vehicle and a concern. We’ll suggest a starting service, not claim a diagnosis.</p></div>
+      <div class="diagnostic-layout">
+        <div class="diagnostic-inputs reveal">
+          <label for="triageVehicle"><span>01 / Vehicle</span><select id="triageVehicle"><option value="">Choose a vehicle</option></select></label>
+          <fieldset><legend>02 / What are you noticing?</legend><div class="diagnostic-choices" id="triageChoices"></div></fieldset>
+        </div>
+        <div class="diagnostic-result reveal" id="triageResult" aria-live="polite">
+          <span class="diagnostic-result__label">03 / Suggested starting point</span>
+          <div class="diagnostic-result__graphic" aria-hidden="true"><span></span><span></span><span></span></div>
+          <h3 id="triageResultTitle">Your service brief starts here.</h3>
+          <p id="triageResultDescription">Select your vehicle and a concern to see a relevant service.</p>
+          <small data-field="triage.disclaimer">A technician must inspect the vehicle before confirming any repair or price.</small>
+          <div class="diagnostic-result__actions"><button class="button" id="copyServiceBrief" type="button" disabled>Copy service brief</button><a class="outline-link" id="triageContact" href="#contact">Contact options ↗</a></div>
+        </div>
+      </div>
     </section>
 
     <section class="trust shell" id="approach"><div class="trust-copy reveal"><p class="eyebrow">How we work</p><h2>No guesswork between the problem and the repair.</h2><p>Replace this preview statement with the workshop’s verified process, expertise and customer promise.</p></div><div class="trust-grid" id="trustGrid"></div></section>

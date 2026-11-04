@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Configurable premium real-estate website template by AgentFront.">
+  <meta name="theme-color" content="#171b29">
+  <title>Real-estate template · AgentFront</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Italiana&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Listings motion and interaction layer. Kept separate from the base editorial layout. */
+    html, body { max-width: 100%; }
+    body { overflow-x: clip; }
+    .hero { grid-template-columns: minmax(0, 1.14fr) minmax(0, .86fr); }
+    .hero-copy, .hero-image, .hero h1, .shell, .listing, .catalog-card { min-width: 0; }
+    .hero h1, .section-head h2 { overflow-wrap: anywhere; }
+    .hero-image { overflow: hidden; isolation: isolate; }
+    .hero-image::after {
+      content: ""; position: absolute; inset: -15%; pointer-events: none;
+      background: linear-gradient(107deg, transparent 32%, rgba(255, 248, 226, .17) 49%, transparent 62%);
+      transform: translateX(-80%); animation: silk-light 11s ease-in-out infinite;
+    }
+    .hero-image .image-index { z-index: 1; }
+    .hero { --look-wash: rgba(29, 46, 87, .43); --look-accent: #314d7b; --look-surface: #f0f2f5; }
+    .hero[data-look="rust"] { --look-wash: rgba(172, 65, 37, .52); --look-accent: #aa492f; --look-surface: #f8eee7; }
+    .hero[data-look="gold"] { --look-wash: rgba(196, 142, 41, .5); --look-accent: #9d6b2f; --look-surface: #f7f2e6; }
+    .hero[data-look="cream"] { --look-wash: rgba(201, 179, 131, .34); --look-accent: #866b46; --look-surface: #f8f4e9; }
+    .hero-image::before { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--look-wash); mix-blend-mode: multiply; pointer-events: none; transition: background-color .7s ease; }
+    .hero-copy { background: var(--look-surface); transition: background-color .7s ease; }
+    .hero-copy .eyebrow { color: var(--look-accent); transition: color .7s ease; }
+    .hero-copy.reveal.shown h1 { animation: editorial-enter 1s cubic-bezier(.2,.75,.2,1) both; }
+    @keyframes editorial-enter { from { opacity: 0; transform: translateY(35px); filter: blur(7px); } to { opacity: 1; transform: none; filter: none; } }
+    .hero-look-lab { position: absolute; right: clamp(16px, 2.3vw, 34px); bottom: 25px; z-index: 4; width: min(310px, calc(100% - 32px)); padding: 19px 20px 16px; background: rgba(255, 250, 241, .94); color: var(--ink); box-shadow: 0 25px 65px rgba(14, 17, 24, .28); backdrop-filter: blur(15px); animation: look-lab-enter .9s .35s both; }
+    @keyframes look-lab-enter { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+    .hero-look-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 8px; color: var(--look-accent); font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .15em; }
+    .hero-look-title { margin: 0; min-height: 42px; font: 400 2.5rem/1 var(--display); }
+    .hero-look-note { min-height: 36px; margin: 6px 0 14px; color: var(--muted); font-size: .76rem; line-height: 1.4; }
+    .hero-look-lab.look-updating .hero-look-title, .hero-look-lab.look-updating .hero-look-note { animation: look-swap .55s cubic-bezier(.2,.75,.2,1) both; }
+    .hero-look-lab.look-updating .hero-look-note { animation-delay: .08s; }
+    @keyframes look-swap { from { opacity: 0; transform: translateY(11px); } to { opacity: 1; transform: none; } }
+    .hero-look-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+    .hero-look-button { min-height: 55px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; padding: 7px 2px; border: 1px solid rgba(23, 27, 41, .19); background: transparent; color: var(--ink); cursor: pointer; font: 600 .64rem/1.2 var(--sans); transition: background .25s ease, border-color .25s ease, transform .25s ease; }
+    .hero-look-button:hover, .hero-look-button:focus-visible { transform: translateY(-4px); border-color: var(--look-accent); }
+    .hero-look-button[aria-pressed="true"] { background: var(--look-surface); border-color: var(--look-accent); }
+    .hero-look-swatch { width: 21px; height: 21px; border-radius: 50%; background: #304675; box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
+    .hero-look-button[data-look="rust"] .hero-look-swatch { background: #af4b33; }
+    .hero-look-button[data-look="gold"] .hero-look-swatch { background: #b78a4b; }
+    .hero-look-button[data-look="cream"] .hero-look-swatch { background: #c4ad87; }
+    .journey-line { position: fixed; top: 0; left: 0; z-index: 100; width: 100%; height: 4px; background: var(--accent); transform: scaleX(0); transform-origin: left; pointer-events: none; }
+    body.is-navigating .journey-line { animation: journey-progress .85s cubic-bezier(.18,.8,.2,1) forwards; }
+    @keyframes journey-progress { 0% { transform: scaleX(0); opacity: 1; } 75% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+    @keyframes silk-light { 0%, 18% { transform: translateX(-80%); } 55%, 100% { transform: translateX(90%); } }
+    .header nav a { position: relative; transition: color .25s ease; }
+    .header nav a::after {
+      content: ""; position: absolute; left: 0; right: 100%; bottom: -7px;
+      height: 1px; background: var(--accent); transition: right .28s ease;
+    }
+    .header nav a:hover::after, .header nav a:focus-visible::after, .header nav a[aria-current]::after { right: 0; }
+    .header nav a[aria-current] { color: var(--accent); }
+    .arrow-link i, .category i { display: inline-block; transition: transform .3s ease; }
+    .arrow-link:hover i, .arrow-link:focus-visible i { transform: translateY(6px); }
+    .category { display: block; padding: 0; }
+    .category button {
+      width: 100%; min-height: 130px; padding: 26px 2px; border: 0; background: transparent;
+      display: grid; grid-template-columns: 90px minmax(0, 1fr) minmax(0, .7fr) auto;
+      gap: 28px; align-items: center; color: inherit; text-align: left; cursor: pointer;
+      font: inherit; transition: padding .32s ease, background .32s ease;
+    }
+    .category button>span:first-child { color: var(--accent); font-size: .7rem; }
+    .category strong { font: 400 2.2rem/1.1 var(--display); }
+    .category-description { color: var(--muted); font-size: .86rem; }
+    .category:hover button, .category button:focus-visible { padding-left: 16px; padding-right: 16px; background: rgba(183, 138, 75, .09); }
+    .category:hover i, .category button:focus-visible i { transform: translate(5px, -5px); color: var(--accent); }
+    .listing { transition: transform .35s ease, box-shadow .35s ease; }
+    .listing:hover, .listing:focus-within { transform: translateY(-9px); box-shadow: 0 24px 55px rgba(0, 0, 0, .2); }
+    .listing>div::before { animation: property-drift 8s ease-in-out infinite alternate; }
+    .listing:nth-child(2)>div::before { animation-delay: -2s; }
+    .listing:nth-child(3)>div::before { animation-delay: -4s; }
+    @keyframes property-drift { from { transform: translateY(9px) skewX(-2deg); } to { transform: translateY(-9px) skewX(2deg); } }
+    .listing-enquire { transition: color .2s ease, transform .2s ease; }
+    .listing-enquire:hover, .listing-enquire:focus-visible { color: #f1c98d; transform: translate(2px, -2px); }
+    .section-intro { max-width: 590px; color: var(--muted); font-size: .94rem; }
+    .catalog-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: -20px 0 12px; }
+    .filter-chip {
+      min-height: 40px; padding: 9px 17px; border: 1px solid var(--line); border-radius: 999px;
+      background: transparent; color: var(--ink); font: 600 .72rem/1 var(--sans);
+      cursor: pointer; transition: background .25s ease, color .25s ease, border-color .25s ease, transform .25s ease;
+    }
+    .filter-chip:hover, .filter-chip:focus-visible { transform: translateY(-2px); border-color: var(--accent); }
+    .filter-chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+    .catalog-count { margin: 0 0 25px; color: var(--muted); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+    .catalog-open { width: 100%; padding: 0; border: 0; background: none; color: inherit; display: block; text-align: left; font: inherit; cursor: pointer; }
+    .catalog-art {
+      position: relative; aspect-ratio: 3/4; padding: 18px; overflow: hidden; isolation: isolate;
+      display: block; color: white; background: linear-gradient(145deg, #1f2b49, #63708b);
+    }
+    .tone-rust .catalog-art, .quick-view-art.tone-rust { background: linear-gradient(145deg, #8f392d, #ca744f); }
+    .tone-cream .catalog-art, .quick-view-art.tone-cream { background: linear-gradient(145deg, #cbb898, #897452); }
+    .tone-gold .catalog-art, .quick-view-art.tone-gold { background: linear-gradient(145deg, #9d722d, #d0a35b); }
+    .tone-navy .catalog-art, .quick-view-art.tone-navy { background: linear-gradient(145deg, #1f2b49, #63708b); }
+    .catalog-art::before, .quick-view-art::before {
+      content: ""; position: absolute; inset: -50%;
+      background: repeating-linear-gradient(92deg, transparent 0 12px, rgba(255,255,255,.07) 13px 14px, transparent 15px 28px);
+      transform: rotate(-12deg); animation: weave-shift 14s linear infinite;
+    }
+    @keyframes weave-shift { to { transform: translateX(28px) rotate(-12deg); } }
+    .catalog-art::after, .quick-view-art::after {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 55% 24%, rgba(255,255,255,.34), transparent 45%);
+      mix-blend-mode: screen; pointer-events: none;
+    }
+    .property-form {
+      position: absolute; width: 70%; height: 76%; left: 15%; top: 13%; z-index: 1;
+      clip-path: polygon(32% 0, 68% 0, 86% 12%, 100% 63%, 83% 68%, 78% 100%, 22% 100%, 17% 68%, 0 63%, 14% 12%);
+      background: linear-gradient(104deg, rgba(255,255,255,.54), rgba(255,255,255,.04) 22%, rgba(16,22,30,.18) 45%, rgba(255,255,255,.26) 67%, rgba(16,22,30,.24));
+      filter: drop-shadow(16px 22px 12px rgba(0,0,0,.22));
+      transform: rotate(-3deg); transition: transform .55s cubic-bezier(.2,.8,.2,1), filter .55s ease;
+    }
+    .catalog-card:nth-child(even) .property-form { transform: rotate(4deg); }
+    .catalog-open:hover .property-form, .catalog-open:focus-visible .property-form { transform: translateY(-10px) rotate(1deg) scale(1.08); filter: drop-shadow(22px 28px 16px rgba(0,0,0,.3)); }
+    .catalog-card:nth-child(even) .catalog-open:hover .property-form, .catalog-card:nth-child(even) .catalog-open:focus-visible .property-form { transform: translateY(-10px) rotate(-1deg) scale(1.08); }
+    .catalog-number, .catalog-open-hint { position: absolute; z-index: 2; font-size: .68rem; letter-spacing: .13em; text-transform: uppercase; }
+    .catalog-number { top: 18px; left: 18px; }
+    .catalog-open-hint { right: 15px; bottom: 15px; padding: 9px 12px; background: var(--white); color: var(--ink); opacity: 0; transform: translateY(10px); transition: .3s ease; }
+    .catalog-open:hover .catalog-open-hint, .catalog-open:focus-visible .catalog-open-hint { opacity: 1; transform: none; }
+    .catalog-meta, .catalog-title, .catalog-category { display: block; }
+    .catalog-meta { margin-top: 15px; color: var(--muted); font-size: .66rem; text-transform: uppercase; letter-spacing: .12em; }
+    .catalog-title { margin-top: 3px; font: 400 1.6rem/1.15 var(--display); }
+    .catalog-category { margin-top: 5px; color: var(--accent); font-size: .72rem; }
+    .catalog-card { transition: transform .3s ease; }
+    .catalog-card:hover, .catalog-card:focus-within { transform: translateY(-5px); }
+    .quick-view {
+      width: min(900px, calc(100vw - 30px)); max-height: min(700px, calc(100dvh - 30px));
+      padding: 0; border: 1px solid var(--line); background: var(--white); color: var(--ink);
+      box-shadow: 0 36px 90px rgba(0,0,0,.35); overflow: auto;
+    }
+    .quick-view[open] { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); }
+    .quick-view::backdrop { background: rgba(17,19,28,.75); backdrop-filter: blur(5px); }
+    .quick-view-close { position: absolute; right: 15px; top: 14px; z-index: 5; width: 38px; height: 38px; border: 1px solid var(--line); background: var(--white); color: var(--ink); font-size: 1.5rem; cursor: pointer; }
+    .quick-view-art { min-height: 530px; position: relative; overflow: hidden; }
+    .quick-view-art .property-form { width: 62%; left: 19%; top: 12%; }
+    .quick-view-art-label { position: absolute; z-index: 3; left: 25px; bottom: 22px; color: white; letter-spacing: .2em; font-size: .65rem; }
+    .quick-view-content { padding: 75px 48px 45px; display: flex; flex-direction: column; justify-content: center; }
+    .quick-view-content h2 { margin: 0; font: 400 clamp(2.8rem, 5vw, 4.9rem)/1 var(--display); }
+    .quick-view-content>p:not(.eyebrow) { max-width: 35ch; color: var(--muted); }
+    .quick-view-content dl { margin: 25px 0; border-top: 1px solid var(--line); }
+    .quick-view-content dl div { padding: 10px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; }
+    .quick-view-content dt { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; }
+    .quick-view-content dd { margin: 0; font-size: .8rem; text-align: right; }
+    .quick-view-enquire { padding: 14px 16px; background: var(--accent); color: white; display: flex; justify-content: space-between; gap: 15px; text-decoration: none; font-size: .78rem; font-weight: 600; transition: background .25s ease, transform .25s ease; }
+    .quick-view-enquire:hover, .quick-view-enquire:focus-visible { background: var(--ink); transform: translateY(-3px); }
+    .quick-view-content .quick-view-note { font-size: .7rem; }
+    .section-arrived .section-head h2 { animation: title-arrive .9s cubic-bezier(.2,.75,.2,1); }
+    @keyframes title-arrive { 0% { opacity: 0; transform: translateY(32px); filter: blur(5px); } 100% { opacity: 1; transform: none; filter: none; } }
+    :is(button, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    @media (max-width: 920px) {
+      .hero { grid-template-columns: minmax(0, 1fr); }
+      .category button { grid-template-columns: 70px minmax(0, 1fr) auto; }
+      .category-description { display: none; }
+    }
+    @media (max-width: 620px) {
+      .hero { width: 100%; }
+      .hero h1 { font-size: clamp(3rem, 13vw, 5rem); }
+      .hero-image { min-height: min(500px, 115vw); }
+      .hero-look-lab { bottom: 18px; padding: 14px; }
+      .hero-look-title { font-size: 2.1rem; min-height: 34px; }
+      .hero-look-note { margin-bottom: 10px; }
+      .image-index { top: 13px; bottom: auto; left: 13px; }
+      .category button { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; min-height: 100px; }
+      .category strong { font-size: 1.7rem; }
+      .catalog-filters { margin-top: -12px; flex-wrap: nowrap; overflow-x: auto; padding: 0 2px 12px; scroll-snap-type: x proximity; }
+      .filter-chip { white-space: nowrap; flex: 0 0 auto; scroll-snap-align: start; }
+      .catalog-open-hint { opacity: 1; transform: none; }
+      .quick-view[open] { grid-template-columns: minmax(0, 1fr); }
+      .quick-view-art { min-height: 270px; }
+      .quick-view-art .property-form { height: 94%; top: 5%; width: 45%; left: 27.5%; }
+      .quick-view-content { padding: 34px 26px 30px; }
+      .quick-view-content h2 { font-size: 2.8rem; }
+      .quick-view-close { right: 10px; top: 10px; }
+      .visit, .enquire, .listings { overflow: clip; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-image::after, .listing>div::before, .catalog-art::before, .quick-view-art::before, .hero-copy.reveal.shown h1, .hero-look-lab, .hero-look-lab.look-updating .hero-look-title, .hero-look-lab.look-updating .hero-look-note, body.is-navigating .journey-line { animation: none; }
+      .hero-image::before, .hero-copy, .hero-copy .eyebrow { transition: none; }
+      .category button, .catalog-card, .listing, .property-form, .filter-chip, .catalog-open-hint, .quick-view-enquire, .header nav a::after, .arrow-link i, .category i { transition: none; }
+      .section-arrived .section-head h2 { animation: none; }
+    }
+    /* The first screen is a working style studio, not merely a static editorial hero. */
+    .hero {
+      --property-light: #7086ad;
+      --property-dark: #152a50;
+      --property-fold: #314d78;
+      padding: 2.25vw;
+      grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr);
+    }
+    .hero[data-look="rust"] { --property-light: #e2a073; --property-dark: #74362d; --property-fold: #af5d42; }
+    .hero[data-look="gold"] { --property-light: #edcf8e; --property-dark: #805e2d; --property-fold: #bb914f; }
+    .hero[data-look="cream"] { --property-light: #eee0bf; --property-dark: #a1815d; --property-fold: #c8af87; }
+    .hero-image { min-height: 740px; background-position: center; }
+    .hero-image.reveal, .hero-copy.reveal { opacity: 1; transform: none; }
+    .hero-copy.reveal.shown h1 { animation: none; }
+    .hero-copy { padding: clamp(38px, 4.5vw, 86px) clamp(38px, 4vw, 78px); background-image: repeating-linear-gradient(90deg, transparent 0 29px, rgba(30, 42, 62, .018) 30px 31px); }
+    .hero h1 { font-size: clamp(4.25rem, 5.65vw, 7.5rem); line-height: .96; }
+    .hero-copy>p:not(.eyebrow) { margin: 22px 0 24px; font-size: clamp(.98rem, 1.05vw, 1.13rem); line-height: 1.55; }
+    .hero-look-lab {
+      position: relative; right: auto; bottom: auto; z-index: auto; width: 100%;
+      margin: 0 0 10px; padding: 17px 0 18px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+      background: transparent; box-shadow: none; backdrop-filter: none; animation: none;
+    }
+    .hero-look-top { margin-bottom: 3px; font-size: .78rem; letter-spacing: .13em; }
+    .hero-look-title { min-height: 0; font-size: clamp(2rem, 2.8vw, 3.1rem); }
+    .hero-look-note { min-height: 0; margin: 3px 0 12px; font-size: .86rem; }
+    .hero-look-choices { gap: 9px; }
+    .hero-look-button {
+      position: relative; min-height: 73px; flex-direction: row; justify-content: flex-start; align-items: center;
+      gap: 9px; padding: 8px 9px; overflow: hidden; background: rgba(255,255,255,.43);
+      font-size: .78rem; text-align: left;
+    }
+    .hero-look-button::after { content: "↗"; position: absolute; right: 7px; top: 6px; font-size: .8rem; opacity: 0; transform: translate(-5px, 5px); transition: .25s ease; }
+    .hero-look-button:hover::after, .hero-look-button:focus-visible::after, .hero-look-button[aria-pressed="true"]::after { opacity: 1; transform: none; }
+    .hero-look-button[aria-pressed="true"] { box-shadow: inset 0 -3px var(--look-accent); }
+    .hero-look-swatch {
+      width: 28px; height: 46px; flex: 0 0 28px; border-radius: 0;
+      background: repeating-linear-gradient(108deg, rgba(255,255,255,.18) 0 2px, transparent 3px 9px), linear-gradient(120deg, #172a55, #7790b6, #243d70);
+      box-shadow: 4px 4px 9px rgba(0,0,0,.13);
+      clip-path: polygon(6% 0, 95% 0, 100% 96%, 70% 100%, 43% 95%, 0 100%);
+      transform: skewY(-4deg); transition: transform .35s ease;
+    }
+    .hero-look-button:hover .hero-look-swatch, .hero-look-button:focus-visible .hero-look-swatch { transform: skewY(-4deg) translateY(-6px); }
+    .hero-look-button[data-look="rust"] .hero-look-swatch { background: repeating-linear-gradient(108deg, rgba(255,255,255,.17) 0 2px, transparent 3px 9px), linear-gradient(120deg, #873d31, #e1a076, #a24f36); }
+    .hero-look-button[data-look="gold"] .hero-look-swatch { background: repeating-linear-gradient(108deg, rgba(255,255,255,.2) 0 2px, transparent 3px 9px), linear-gradient(120deg, #9e7335, #f1d89f, #b38644); }
+    .hero-look-button[data-look="cream"] .hero-look-swatch { background: repeating-linear-gradient(108deg, rgba(255,255,255,.22) 0 2px, transparent 3px 9px), linear-gradient(120deg, #a18660, #f6e5c8, #c2a682); }
+    .property-stage { position: absolute; z-index: 3; inset: 0; pointer-events: none; }
+    .property-stage::before { content: "THE FABRIC ROOM"; position: absolute; top: 22px; right: 24px; color: #fff8e8; font-size: .7rem; font-weight: 600; letter-spacing: .22em; text-shadow: 0 2px 8px #141414; }
+    .property-stage-tower { position: absolute; left: 57%; top: 10%; width: 30%; height: 36%; border: 2px solid rgba(255,248,232,.75); border-bottom: 0; border-radius: 50% 50% 0 0; transform: rotate(8deg); filter: drop-shadow(2px 8px 5px rgba(0,0,0,.22)); }
+    .property-stage-tower::before { content: ""; position: absolute; left: 47%; top: -16px; width: 16px; height: 20px; border: 2px solid rgba(255,248,232,.88); border-left: 0; border-bottom: 0; border-radius: 50%; transform: rotate(28deg); }
+    .property-stage-floorplan {
+      position: absolute; left: 54%; top: 25%; width: 39%; height: 49%;
+      clip-path: polygon(29% 0, 71% 0, 82% 6%, 100% 35%, 90% 42%, 81% 29%, 89% 100%, 11% 100%, 19% 29%, 10% 42%, 0 35%, 18% 6%);
+      background: repeating-linear-gradient(98deg, rgba(255,255,255,.12) 0 2px, transparent 3px 17px), linear-gradient(100deg, var(--property-dark), var(--property-light) 24%, var(--property-fold) 41%, var(--property-light) 58%, var(--property-dark) 88%);
+      filter: drop-shadow(12px 22px 16px rgba(0,0,0,.38));
+      transform-origin: 50% 0; animation: property-sway 5.5s ease-in-out infinite;
+      transition: background .65s ease;
+    }
+    .property-stage-floorplan::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(85deg, transparent 0 14px, rgba(255,255,255,.18) 15px 17px, transparent 18px 32px); animation: property-shimmer 9s linear infinite; }
+    .property-stage-tag { position: absolute; bottom: 28px; right: 30px; width: min(320px, 56%); padding: 20px 22px; display: grid; gap: 2px; background: #fff8e9; box-shadow: 0 15px 36px rgba(0,0,0,.24); transform: rotate(-3deg); }
+    .property-stage-tag span, .property-stage-tag small { color: var(--look-accent); font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .15em; }
+    .property-stage-tag strong { font: 400 clamp(1.65rem, 2.6vw, 3rem)/1 var(--display); }
+    .property-stage-tag small { justify-self: end; }
+    .header nav a, .header-action, .arrow-link { font-size: .82rem; }
+    .eyebrow { font-size: .76rem; }
+    .hero.look-changing .property-stage-floorplan { animation: property-change .75s cubic-bezier(.2,.8,.2,1), property-sway 5.5s .75s ease-in-out infinite; }
+    .hero.look-changing .property-stage-tag strong { animation: look-swap .6s cubic-bezier(.2,.75,.2,1) both; }
+    @keyframes property-sway { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    @keyframes property-shimmer { to { transform: translateX(35px); } }
+    @keyframes property-change { 0% { opacity: .25; transform: translateY(40px) rotate(-12deg) scale(.87); } 100% { opacity: 1; transform: none; } }
+    @media (max-width: 1180px) {
+      .hero h1 { font-size: clamp(3.35rem, 5vw, 5.5rem); }
+      .hero-copy { padding: 38px 34px; }
+      .hero-look-button { font-size: .76rem; }
+    }
+    @media (max-width: 920px) {
+      .hero { grid-template-columns: minmax(0, 1fr); padding: 3vw; }
+      .hero-image { min-height: 610px; }
+      .hero-copy { padding: 48px 6vw; }
+      .hero h1 { font-size: clamp(4rem, 9vw, 6rem); }
+    }
+    @media (max-width: 620px) {
+      .hero { padding: 0 4vw 20px; }
+      .hero-image { min-height: 440px; }
+      .hero-copy { padding: 39px 5vw; background: var(--look-surface); }
+      .hero h1 { font-size: clamp(3.7rem, 12vw, 5.1rem); }
+      .hero-copy>p:not(.eyebrow) { font-size: 1rem; }
+      .hero-look-lab { padding: 17px 0 18px; }
+      .hero-look-button { min-height: 68px; flex-direction: column; align-items: flex-start; gap: 4px; padding: 7px 6px; font-size: .75rem; }
+      .hero-look-swatch { width: 19px; height: 25px; flex-basis: 25px; }
+      .property-stage::before { right: 13px; top: 12px; font-size: .52rem; }
+      .property-stage-tower { top: 12%; }
+      .property-stage-floorplan { top: 26%; height: 45%; }
+      .property-stage-tag { right: 12px; bottom: 14px; width: min(215px, 58%); padding: 13px; }
+      .property-stage-tag strong { font-size: 1.7rem; }
+      .property-stage-tag span, .property-stage-tag small { font-size: .63rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .property-stage-floorplan, .property-stage-floorplan::before, .hero.look-changing .property-stage-floorplan, .hero.look-changing .property-stage-tag strong { animation: none; }
+      .hero-look-button::after, .hero-look-swatch, .property-stage-floorplan { transition: none; }
+    }
+  
+    /* Niche motion: animated architectural elevation and locator pulse. */
+    .property-stage::before{content:"LIVE PROPERTY VIEW";top:22px;right:24px}
+    .property-stage-tower{position:absolute;left:58%;top:10%;width:27%;height:43%;border:2px solid rgba(255,248,232,.82);background:repeating-linear-gradient(0deg,transparent 0 20px,rgba(255,248,232,.38) 21px 23px),repeating-linear-gradient(90deg,transparent 0 27px,rgba(255,248,232,.34) 28px 30px);clip-path:polygon(14% 12%,72% 0,100% 14%,100% 100%,0 100%,0 30%);filter:drop-shadow(0 12px 10px rgba(0,0,0,.2));animation:property-rise 1.1s .35s cubic-bezier(.2,.8,.2,1) both}
+    .property-stage-tower::after{content:"";position:absolute;left:50%;bottom:-13px;width:13px;height:13px;border-radius:50%;background:#fff8e8;box-shadow:0 0 0 0 rgba(255,248,232,.55);animation:property-locator 2.4s ease-out infinite}
+    .property-stage-floorplan{position:absolute;left:9%;top:18%;width:35%;height:31%;border:1px solid rgba(255,248,232,.72);background:linear-gradient(90deg,transparent 48%,rgba(255,248,232,.62) 49% 51%,transparent 52%),linear-gradient(0deg,transparent 56%,rgba(255,248,232,.62) 57% 59%,transparent 60%);transform:perspective(360px) rotateX(58deg) rotateZ(-12deg);animation:floorplan-drift 5s ease-in-out infinite}
+    .property-stage-tag{transform:none;border-left:4px solid var(--look-accent)}
+    .hero.look-changing .property-stage-tower{animation:property-switch .72s cubic-bezier(.2,.8,.2,1)}
+    @keyframes property-rise{from{opacity:0;transform:translateY(45px)}to{opacity:1;transform:none}}
+    @keyframes property-locator{70%,100%{box-shadow:0 0 0 28px rgba(255,248,232,0)}}
+    @keyframes floorplan-drift{50%{transform:perspective(360px) rotateX(58deg) rotateZ(-8deg) translateY(-8px)}}
+    @keyframes property-switch{50%{opacity:.3;transform:scale(.93)}}
+
+  
+    .property-stage-tower::before,.property-stage-floorplan::before{content:none}
+    .hero-look-swatch{position:relative;width:28px;height:24px;border-radius:4px!important;background:var(--look-surface)!important;border:2px solid var(--look-accent);box-shadow:none!important;transform:none!important}
+    .hero-look-swatch::before{content:"";position:absolute;left:4px;top:-7px;width:15px;height:15px;border-left:2px solid var(--look-accent);border-top:2px solid var(--look-accent);transform:rotate(45deg);background:var(--look-surface)}
+    .hero-look-swatch::after{content:"";position:absolute;left:11px;bottom:0;width:5px;height:9px;background:var(--look-accent)}
+
+  </style>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="journey-line" aria-hidden="true"></div>
+  <div class="preview" id="previewBar" role="status">Real-estate template preview</div>
+  <header class="header" id="top">
+    <a class="logo" href="#top"><span class="logo-symbol">L</span><span><strong data-field="business.name">Loom &amp; Line</strong><small data-field="business.descriptor">Clothiers · Template preview</small></span></a>
+    <button class="nav-button" aria-expanded="false" aria-controls="nav" type="button"><span></span><span></span><span class="sr-only">Open menu</span></button>
+    <nav id="nav" aria-label="Primary"><a href="#categories">Shop by style</a><a href="#listings">Listings</a><a href="#catalog">Listings</a><a href="#visit">Visit</a></nav>
+    <a class="header-action" id="headerWhatsapp" href="#enquire">Enquire <span>↗</span></a>
+  </header>
+
+  <main id="main">
+    <section class="hero" data-look="navy">
+      <div class="hero-image reveal"><span class="sr-only">Curated property boutique interior with an interactive property story</span><span class="image-index">AF / PROPERTY / 01</span><div class="property-stage" aria-hidden="true"><div class="property-stage-tower"></div><div class="property-stage-floorplan"></div><div class="property-stage-tag"><span>Featured residence</span><strong id="heroImageTitle">City apartment</strong><small id="heroImagePosition">01 / 03</small></div></div></div>
+      <div class="hero-copy reveal"><p class="eyebrow" data-field="hero.eyebrow">Curated homes · Chennai</p><h1 data-field="hero.title">Homes with a sense of place.</h1><p data-field="hero.description">A cinematic property experience for qualified enquiries and private visits.</p><div class="hero-look-lab"><div class="hero-look-top"><span>Interactive home finder</span><span id="heroLookIndex">01 / 03</span></div><h2 class="hero-look-title" id="heroLookTitle" aria-live="polite">City apartment</h2><p class="hero-look-note" id="heroLookNote">Connected urban living with light-filled interiors.</p><div class="hero-look-choices" id="heroLookChoices" role="group" aria-label="Choose a property preference"><button class="hero-look-button" type="button" data-look-index="0" data-look="navy" aria-pressed="true" aria-label="Preview City apartment property preference"><span class="hero-look-swatch" aria-hidden="true"></span><span>City apartment</span></button><button class="hero-look-button" type="button" data-look-index="1" data-look="rust" aria-pressed="false" aria-label="Preview Courtyard villa property preference"><span class="hero-look-swatch" aria-hidden="true"></span><span>Courtyard villa</span></button><button class="hero-look-button" type="button" data-look-index="2" data-look="gold" aria-pressed="false" aria-label="Preview Coastal residence property preference"><span class="hero-look-swatch" aria-hidden="true"></span><span>Coastal residence</span></button></div></div><a class="arrow-link" href="#listings"><span data-field="hero.cta">Explore listings</span><i>↓</i></a></div>
+      <div class="hero-side"><span>Edition 01</span><span>Private property advisory</span></div>
+    </section>
+
+    <section class="manifesto shell reveal"><p>Not a cart. A considered introduction to the listing — with direct enquiries and a clear path to the store.</p><span>Configurable by design</span></section>
+
+    <section class="categories shell" id="categories">
+      <header class="section-head reveal"><p class="eyebrow">Browse by style</p><h2>Begin with what feels like you.</h2></header>
+      <div class="category-list" id="categoryList"></div>
+    </section>
+
+    <section class="listings" id="listings">
+      <div class="shell"><header class="section-head light reveal"><p class="eyebrow">Featured listings</p><h2>A portfolio in chapters.</h2></header><div class="listing-grid" id="listingGrid"></div></div>
+    </section>
+
+    <section class="offer shell" id="offerSection">
+      <div class="offer-mark">%</div><div class="reveal"><p class="eyebrow" data-field="offer.eyebrow">Store offer placeholder</p><h2 data-field="offer.title">Give regular customers a reason to return.</h2><p data-field="offer.description">Configure this space only with a verified offer, validity period and applicable conditions.</p><small data-field="offer.terms">No live offer is published in this template preview.</small></div>
+    </section>
+
+    <section class="catalog shell" id="catalog">
+      <header class="section-head reveal"><p class="eyebrow">The interactive listings</p><h2>Texture, tone and detail.</h2><p class="section-intro">Choose a chapter, then open a story for a closer look. Every enquiry carries the piece you selected.</p></header>
+      <div class="catalog-filters" id="catalogFilters" role="group" aria-label="Filter listings"></div>
+      <p class="catalog-count" id="catalogCount" role="status" aria-live="polite"></p>
+      <div class="catalog-grid" id="catalogGrid"></div>
+    </section>
+
+    <section class="enquire" id="enquire">
+      <div class="shell enquire-inner"><div class="reveal"><p class="eyebrow">Private viewings</p><h2>Found a property worth seeing?</h2><p>Ask about location, configuration and viewing availability directly on WhatsApp. Every listing remains subject to verification.</p></div><a class="round-cta reveal" id="whatsappLink" href="#enquire"><span>Enquire on<br>WhatsApp</span><i>↗</i></a></div>
+    </section>
+
+    <section class="visit shell" id="visit">
+      <div class="visit-copy reveal"><p class="eyebrow">Visit the store</p><h2 data-field="store.title">See the cloth. Feel the weave. Find your fit.</h2><p data-field="store.description">Use this section for verified fitting services, alterations, size availability and store amenities.</p><p class="location" data-field="business.location">Your neighbourhood</p><div class="visit-links"><a id="mapsLink" href="#visit">Directions ↗</a><a id="phoneLink" href="#visit" data-field="business.phoneDisplay">Add verified phone</a></div></div>
+      <div class="hours reveal"><p class="eyebrow">Store hours</p><div id="hoursList"></div></div>
+    </section>
+  </main>
+
+  <dialog class="quick-view" id="quickView" aria-labelledby="quickViewTitle">
+    <button class="quick-view-close" id="quickViewClose" type="button" aria-label="Close listings story">×</button>
+    <div class="quick-view-art" id="quickViewArt" aria-hidden="true"><span class="quick-view-art-label">LOOM / LINE</span><span class="property-form"></span></div>
+    <div class="quick-view-content"><p class="eyebrow" id="quickViewType"></p><h2 id="quickViewTitle"></h2><p id="quickViewDescription"></p><dl><div><dt>Chapter</dt><dd id="quickViewCategory"></dd></div><div><dt>Detail</dt><dd id="quickViewDetail"></dd></div></dl><a class="quick-view-enquire" id="quickViewEnquire" href="#visit">Ask about this story <span>↗</span></a><p class="quick-view-note" id="quickViewNote"></p></div>
+  </dialog>
+
+  <footer><a class="logo" href="#top"><span class="logo-symbol">L</span><span><strong data-field="business.name">Loom &amp; Line</strong><small data-field="business.descriptor">Clothiers · Template preview</small></span></a><p>Enquiry-led property template. No checkout enabled.</p><p>© <span id="year"></span> · AgentFront</p></footer>
+</body>
+</html>

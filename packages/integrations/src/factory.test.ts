@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createProviderSet } from "./factory";
+import { ClaudeDeveloperProvider, OpenAIDeveloperProvider } from "./developer";
 
 const configuredEnvironment = {
   GOOGLE_PLACES_API_KEY: "google-test-key",
@@ -43,6 +44,26 @@ describe("provider selection", () => {
     expect(providers.conversation.mode).toBe("REAL");
     expect(providers.developer.mode).toBe("REAL");
     expect(providers.deployment.mode).toBe("REAL");
+  });
+
+  it("selects OpenAI for bounded template customization when explicitly configured", () => {
+    const providers = createProviderSet({
+      DEVELOPER_PROVIDER: "openai", OPENAI_API_KEY: "openai-test-key", OPENAI_MODEL: "gpt-6-astra",
+    }, []);
+
+    expect(providers.developer).toBeInstanceOf(OpenAIDeveloperProvider);
+    expect(providers.developer.mode).toBe("REAL");
+  });
+
+  it("selects Claude for bounded template customization when explicitly configured", () => {
+    const providers = createProviderSet({
+      DEVELOPER_PROVIDER: "claude",
+      ANTHROPIC_API_KEY: "anthropic-test-key",
+      CLAUDE_MODEL: "claude-sonnet-4-6",
+    }, []);
+
+    expect(providers.developer).toBeInstanceOf(ClaudeDeveloperProvider);
+    expect(providers.developer.mode).toBe("REAL");
   });
 
   it("treats only explicit DEMO_MODE=true as the global force override", () => {

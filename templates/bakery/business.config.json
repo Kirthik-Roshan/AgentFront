@@ -1,0 +1,123 @@
+{
+  "meta": {
+    "template": "bakery-v1",
+    "preview": true,
+    "previewLabel": "Bakery template preview — verified content only"
+  },
+  "theme": {
+    "ink": "#2d1d18",
+    "paper": "#fff7e8",
+    "accent": "#b94935",
+    "gold": "#d9a441"
+  },
+  "business": {
+    "name": "Butter & Bloom",
+    "descriptor": "Bread · Pastry · Celebration",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "mapsLink": "",
+    "orderLink": "",
+    "reservationLink": ""
+  },
+  "hero": {
+    "kicker": "Baked with the morning",
+    "title": "Small batches. Big reasons to linger.",
+    "description": "An artisan bakery storefront for daily bread, thoughtful pastry and celebration cakes.",
+    "primaryCta": "See todays bake",
+    "secondaryCta": "Plan a visit"
+  },
+  "about": {
+    "eyebrow": "From our ovens",
+    "title": "Slow dough. Bright flavours. A little joy in every box.",
+    "body": "Replace this preview with the bakery true story, ingredients and making process.",
+    "facts": [
+      {
+        "value": "01",
+        "label": "Daily batches"
+      },
+      {
+        "value": "02",
+        "label": "Seasonal pastry"
+      },
+      {
+        "value": "03",
+        "label": "Custom cakes"
+      }
+    ]
+  },
+  "menu": {
+    "eyebrow": "Today counter",
+    "title": "Fresh from the oven.",
+    "note": "Publish only verified items, availability and prices.",
+    "categories": [
+      {
+        "name": "Laminated pastry",
+        "description": "Croissants, morning buns and seasonal danish.",
+        "price": "Ask bakery"
+      },
+      {
+        "name": "Naturally leavened bread",
+        "description": "Country loaves, focaccia and rotating grains.",
+        "price": "Ask bakery"
+      },
+      {
+        "name": "Celebration cakes",
+        "description": "Made-to-order cakes for meaningful days.",
+        "price": "Enquire"
+      }
+    ]
+  },
+  "offers": [
+    {
+      "title": "Morning box",
+      "description": "A curated pastry selection for teams and gatherings.",
+      "badge": "Pre-order"
+    },
+    {
+      "title": "Celebration table",
+      "description": "Custom cakes, tarts and bite-sized sweets.",
+      "badge": "Made to order"
+    }
+  ],
+  "reservations": {
+    "eyebrow": "Pre-orders",
+    "title": "Make the good part easy.",
+    "description": "Reserve a pickup slot through the bakery verified order channel.",
+    "cta": "Start an order"
+  },
+  "gallery": [
+    {
+      "title": "Morning pastry",
+      "label": "Replace with approved product photography",
+      "tone": "amber"
+    },
+    {
+      "title": "Daily bread",
+      "label": "Show current bake selection",
+      "tone": "grain"
+    },
+    {
+      "title": "Celebration work",
+      "label": "Show permission-cleared commissions",
+      "tone": "berry"
+    }
+  ],
+  "hours": [
+    {
+      "days": "Tuesday – Saturday",
+      "time": "Add verified hours"
+    },
+    {
+      "days": "Sunday",
+      "time": "Add verified hours"
+    }
+  ],
+  "features": [
+    "Daily bake",
+    "Pre-orders",
+    "Celebration cakes",
+    "Pickup ready"
+  ]
+}

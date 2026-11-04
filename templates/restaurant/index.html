@@ -15,6 +15,7 @@
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="preview-bar" id="previewBar" role="status">Restaurant template preview</div>
+  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
   <header class="site-header" id="top">
     <a class="brand" href="#top" aria-label="Home"><span class="brand-mark" aria-hidden="true">E</span><span data-field="business.name">Ember &amp; Leaf</span></a>
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="siteNav"><span></span><span></span><span></span><span class="sr-only">Open menu</span></button>
@@ -26,16 +27,32 @@
 
   <main id="main">
     <section class="hero section-shell">
-      <div class="hero-copy reveal">
+      <div class="hero-copy">
         <p class="eyebrow" data-field="hero.kicker">A neighbourhood table</p>
         <h1 data-field="hero.title">Familiar flavours, served with a little fire.</h1>
         <p class="lede" data-field="hero.description">A configurable restaurant experience designed to turn hungry visitors into confident diners and direct orders.</p>
         <div class="button-row"><a class="button" href="#menu" data-field="hero.primaryCta">Explore the menu</a><a class="text-link" href="#visit"><span data-field="hero.secondaryCta">Find the restaurant</span><span aria-hidden="true">↗</span></a></div>
+        <div class="hero-quick-picks" id="heroQuickPicks" role="group" aria-label="Preview a dish"><span class="quick-picks-label">Pick a craving</span></div>
       </div>
-      <div class="hero-art reveal" aria-label="Abstract culinary composition" role="img">
-        <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
-        <div class="plate"><span class="leaf leaf-one"></span><span class="leaf leaf-two"></span><span class="garnish"></span></div>
-        <div class="hero-note"><span>Made for</span><strong>good company</strong></div>
+      <div class="hero-stage">
+        <div class="hero-art" aria-label="Warm restaurant food composition" role="img">
+          <div class="hero-art-sheen" aria-hidden="true"></div>
+          <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+          <div class="plate"><span class="leaf leaf-one"></span><span class="leaf leaf-two"></span><span class="garnish"></span></div>
+          <div class="hero-note"><span>Made for</span><strong>good company</strong></div>
+          <div class="hero-image-label"><span class="image-label-star" aria-hidden="true">✳</span><span>From the kitchen<br><strong>to your table</strong></span></div>
+        </div>
+        <div class="hero-tasting" id="heroTasting" aria-label="Menu preview">
+          <div class="tasting-top"><span class="tasting-signal" aria-hidden="true"></span><span>From the menu</span><span class="tasting-counter" id="tastingCounter">01 / 04</span></div>
+          <div class="tasting-body" id="tastingBody">
+            <p class="tasting-category" id="tastingCategory">Small plates</p>
+            <h2 id="tastingTitle">Charred corn chaat</h2>
+            <p id="tastingDescription">Tamarind, chilli and toasted peanuts</p>
+          </div>
+          <div class="tasting-bottom"><strong id="tastingPrice">₹260</strong><a class="tasting-link" id="tastingView" href="#menu">Explore dish <span aria-hidden="true">↗</span></a><div class="tasting-controls"><button id="tastingPrevious" type="button" aria-label="Previous dish">←</button><button id="tastingNext" type="button" aria-label="Next dish">→</button></div></div>
+          <div class="tasting-progress" id="tastingProgress" aria-hidden="true"><span></span></div>
+          <span class="sr-only" id="tastingAnnounce" role="status" aria-live="polite"></span>
+        </div>
       </div>
       <div class="hero-meta"><span data-field="business.eyebrow">Season-led kitchen · Template preview</span><span class="line"></span><span data-field="business.location">Your neighbourhood</span></div>
     </section>
@@ -50,7 +67,14 @@
     <section class="menu-section" id="menu">
       <div class="section-shell">
         <div class="section-heading light reveal"><p class="eyebrow">A taste of the menu</p><h2>Made to be passed around.</h2><p class="section-note" data-field="menu.note">Preview dishes and prices — replace during client onboarding.</p></div>
-        <div class="menu-grid" id="menuGrid"></div>
+        <div class="menu-filters reveal" id="menuFilters" role="group" aria-label="Filter menu categories"></div>
+        <div class="menu-experience">
+          <div class="menu-grid" id="menuGrid"></div>
+          <div class="dish-spotlight reveal" id="dishSpotlight" aria-live="polite">
+            <div class="dish-spotlight-art" aria-hidden="true"><div class="dish-halo"></div><div class="dish-plate"></div><div class="dish-steam"><span></span><span></span><span></span></div></div>
+            <div class="dish-spotlight-copy"><p class="eyebrow" id="spotlightKicker">From our kitchen</p><h3 id="spotlightName"></h3><p id="spotlightDescription"></p><div class="dish-spotlight-action"><strong id="spotlightPrice"></strong><a class="text-link" id="spotlightLink" href="#contact">Ask about this dish <span aria-hidden="true">↗</span></a></div></div>
+          </div>
+        </div>
         <div class="menu-action"><a class="button button-light" href="#contact">Ask about today's menu</a></div>
       </div>
     </section>

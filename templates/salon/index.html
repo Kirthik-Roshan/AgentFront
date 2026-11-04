@@ -14,6 +14,8 @@
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
+  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
+  <div class="route-veil" aria-hidden="true"><span class="route-veil-mark">M</span><span class="route-veil-label" id="routeVeilLabel">A moment for you</span></div>
   <div class="preview-bar" id="previewBar" role="status">Salon template preview</div>
   <header class="header" id="top">
     <a class="wordmark" href="#top"><span data-field="business.name">Studio Muse</span><small data-field="business.descriptor">Hair · Beauty · Ritual</small></a>
@@ -25,16 +27,32 @@
   <main id="main">
     <section class="hero">
       <div class="hero-copy reveal">
+        <span class="hero-edition" aria-hidden="true">THE BEAUTY EDIT <i></i> VOL. 01</span>
         <p class="eyebrow" data-field="hero.eyebrow">A quieter kind of beauty</p>
         <h1 data-field="hero.title">Care that feels entirely your own.</h1>
         <p data-field="hero.description">An elegant, mobile-first salon template built for clear services, confident pricing and effortless bookings.</p>
         <div class="actions"><a class="pill" href="#booking" data-field="hero.cta">Book your visit</a><a class="underlink" href="#services">Explore services <span>↓</span></a></div>
+        <div class="hero-ritual-shortcuts" role="group" aria-label="Preview a salon treatment"><span>Find your ritual</span><div id="heroRitualShortcuts"></div></div>
+        <p class="hero-scroll-note"><span aria-hidden="true">↘</span> Scroll to explore the studio</p>
       </div>
-      <div class="hero-image reveal" role="img" aria-label="Elegant salon interior">
+      <div class="hero-image reveal"><span class="sr-only">Elegant salon interior</span>
+        <span class="hero-orbit hero-orbit-one" aria-hidden="true"></span><span class="hero-orbit hero-orbit-two" aria-hidden="true"></span>
+        <div class="ritual-stage" aria-hidden="true">
+          <span class="ritual-stage-kicker">YOUR BEAUTY EDIT</span>
+          <div class="ritual-stage-orb"><span id="ritualSymbol">✂</span></div>
+          <div class="ritual-stage-caption"><span id="ritualStageNumber">01</span><span id="ritualStageName">Cut &amp; finish</span></div>
+        </div>
         <div class="image-stamp"><span>Thoughtful care</span><strong>01</strong></div>
+        <div class="ritual-finder" role="group" aria-label="Explore salon treatments">
+          <div class="ritual-finder-top"><span>FIND YOUR RITUAL</span><span id="ritualCount">01 / 04</span></div>
+          <div class="ritual-tabs" id="ritualTabs" aria-label="Choose a treatment"></div>
+          <div class="ritual-preview" aria-live="polite"><span id="ritualNumber">01 / THE EDIT</span><h2 id="ritualName">Cut &amp; finish</h2><p id="ritualDescription">Consultation-led cuts, styling and event-ready finishes.</p><div class="ritual-preview-bottom"><span id="ritualPrice">from ₹900</span><button id="ritualChoose" type="button">Choose this ritual <span aria-hidden="true">↗</span></button></div></div>
+        </div>
       </div>
       <p class="vertical-note">Beauty, considered.</p>
     </section>
+
+    <div class="hero-ticker" aria-hidden="true"><div>PERSONAL CARE <span>✳</span> YOUR MOMENT <span>✳</span> MADE WITH INTENTION <span>✳</span> PERSONAL CARE <span>✳</span> YOUR MOMENT <span>✳</span> MADE WITH INTENTION <span>✳</span></div></div>
 
     <section class="intro shell">
       <p class="intro-mark">M</p>
@@ -43,7 +61,7 @@
     </section>
 
     <section class="services shell" id="services">
-      <header class="section-head reveal"><div><p class="eyebrow">Our services</p><h2>Care, from root to ritual.</h2></div><p>A concise view of the salon’s core services. Each category, description and order is controlled by configuration.</p></header>
+      <header class="section-head reveal"><div><p class="eyebrow">Our services</p><h2>Care, from root to ritual.</h2></div><p>Explore each service to find the care that feels right for you.</p></header>
       <div class="service-grid" id="serviceGrid"></div>
     </section>
 
@@ -69,7 +87,7 @@
     </section>
 
     <section class="booking shell" id="booking">
-      <div class="booking-copy reveal"><p class="eyebrow">Appointments</p><h2>Ready for a little time that’s yours?</h2><p>Choose the configured booking path or begin a conversation on WhatsApp.</p></div>
+      <div class="booking-copy reveal"><p class="eyebrow">Appointments</p><h2>Ready for a little time that’s yours?</h2><p>Choose a service above, then use the verified booking path or begin a conversation on WhatsApp.</p><div class="booking-selection" id="bookingSelection" role="status" aria-live="polite"><span>Your visit</span><strong>No service selected yet</strong><small>Browse the service menu to choose one.</small></div></div>
       <div class="booking-actions reveal"><a class="pill pill-light" id="bookingLink" href="#booking">Request an appointment</a><a class="underlink light" id="whatsappLink" href="#booking">Chat on WhatsApp ↗</a></div>
     </section>
 

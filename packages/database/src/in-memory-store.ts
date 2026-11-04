@@ -55,6 +55,10 @@ export class InMemoryAgentFrontStore implements WorkflowRepository {
     if (conflictingLeadId && conflictingLeadId !== aggregate.lead.id) {
       throw new Error(`A lead already exists for business/campaign pair ${pair}.`);
     }
+    // Match PostgreSQL's ensure-reference behavior for dynamically created
+    // sales-delivery campaigns without overwriting an operator's later pause.
+    if (!this.#businesses.has(aggregate.business.id)) this.#businesses.set(aggregate.business.id, clone(aggregate.business));
+    if (!this.#campaigns.has(aggregate.campaign.id)) this.#campaigns.set(aggregate.campaign.id, clone(aggregate.campaign));
     this.#aggregates.set(aggregate.lead.id, clone(aggregate));
     this.#projects.set(aggregate.lead.projectId, aggregate.lead.id);
     this.#pairs.set(pair, aggregate.lead.id);

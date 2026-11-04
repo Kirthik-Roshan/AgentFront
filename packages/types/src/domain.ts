@@ -3,7 +3,7 @@ export type Identifier = string;
 export type CurrencyCode = "INR" | "USD";
 export type ProviderMode = "REAL" | "DEMO";
 
-export type BusinessType = "restaurant" | "salon" | "garments" | "mechanic";
+export type BusinessType = "restaurant" | "salon" | "garments" | "mechanic" | "clinic" | "education" | "realestate" | "fitness" | "bakery" | "legal" | "spa" | "dental" | "physiotherapy" | "petcare" | "catering" | "events" | "photography" | "interiors" | "travel" | "movers" | "appliance" | "trades" | "detailing" | "drivingschool" | "laundry" | "furniture" | "devicerepair" | "printing" | "florist" | "jewellery" | "tailoring" | "cloudkitchen";
 
 export type CampaignStatus = "DRAFT" | "RUNNING" | "PAUSED" | "STOPPED";
 
@@ -93,7 +93,12 @@ export type DigitalPresenceStatus = "NONE" | "WEAK" | "ADEQUATE" | "STRONG";
 
 export interface Business {
   id: Identifier;
+  /** Optional operator-facing code; the canonical identity remains `id`. */
+  businessCode?: string | null;
   externalPlaceId: string | null;
+  /** Durable sales-CRM identities; absent on unmigrated/demo projections. */
+  freshworksAccountId?: string | null;
+  freshworksDealId?: string | null;
   name: string;
   category: BusinessType;
   address: string;
@@ -105,6 +110,9 @@ export interface Business {
   reviewCount: number;
   website: string | null;
   googleMapsUrl: string | null;
+  /** Ephemeral Google Places photo resource; never persist or expose the API key. */
+  photoName?: string | null;
+  photoAttribution?: { displayName: string; uri: string | null } | null;
   socialLinks: Record<string, string>;
   digitalPresenceStatus: DigitalPresenceStatus;
   onlineOrdering: boolean | null;
@@ -230,6 +238,8 @@ export interface ProjectSpecification {
   };
   pages: string[];
   features: Partial<Record<ProjectFeature, boolean>>;
+  /** Approved, bounded requirements captured from the client conversation. */
+  clientBrief?: string[];
   design: {
     style: string;
     primaryColour?: string;
@@ -311,6 +321,13 @@ export interface AgentEvent {
   status: "INFO" | "SUCCESS" | "WARNING" | "ERROR";
   durationMs: number | null;
   createdAt: ISODateString;
+  /** Nullable for events written before the five-agent cloud foundation. */
+  businessId?: Identifier | null;
+  workflowId?: Identifier | null;
+  correlationId?: Identifier | null;
+  sourceAgent?: import("./workflow").CoreAgent | null;
+  retryCount?: number;
+  payload?: Record<string, unknown> | null;
 }
 
 export interface PipelineTransition {

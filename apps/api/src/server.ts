@@ -7,6 +7,11 @@ const host = process.env.HOST?.trim() || "127.0.0.1";
 const server = createServer(createRouter(runtime, { environment: process.env, bindHost: host }));
 const port = Number(process.env.PORT ?? 4_000);
 
+server.requestTimeout = 30_000;
+server.headersTimeout = 15_000;
+server.keepAliveTimeout = 5_000;
+server.maxHeadersCount = 100;
+
 if (!Number.isInteger(port) || port <= 0 || port > 65_535) throw new Error("PORT must be a valid TCP port.");
 
 server.listen(port, host, () => {

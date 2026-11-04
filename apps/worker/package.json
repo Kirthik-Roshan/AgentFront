@@ -7,6 +7,9 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
+    "@agentfront/database": "0.1.0",
+    "@agentfront/integrations": "0.1.0",
+    "@agentfront/orchestration": "0.1.0",
     "@agentfront/types": "0.1.0"
   }
 }

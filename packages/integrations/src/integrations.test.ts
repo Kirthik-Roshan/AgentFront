@@ -32,6 +32,7 @@ describe("Freshworks mappings", () => {
       accountId: "42",
       business,
       displayName: "Restaurant Owner",
+      contactEmail: "owner@example.com",
     };
     const dealInput: CRMDealInput = {
       projectId: "AF-2026-000001",
@@ -43,7 +44,13 @@ describe("Freshworks mappings", () => {
       stage: "Qualified",
     };
     expect(mapBusinessToFreshworksAccount(accountInput)).toMatchObject({ sales_account: { name: business.name } });
-    expect(mapBusinessToFreshworksContact(contactInput)).toMatchObject({ contact: { last_name: "Owner" } });
+    expect(mapBusinessToFreshworksContact(contactInput)).toMatchObject({ contact: { last_name: "Owner", email: "owner@example.com" } });
+    expect(mapBusinessToFreshworksContact({ ...contactInput, contactPhone: "+919876543210" }))
+      .toMatchObject({ contact: { mobile_number: "+919876543210" } });
+    expect(mapBusinessToFreshworksContact({ ...contactInput, displayName: "Raj" }))
+      .toMatchObject({ contact: { first_name: "Raj" } });
+    expect((mapBusinessToFreshworksContact({ ...contactInput, displayName: "Raj" }).contact as Record<string, unknown>))
+      .not.toHaveProperty("last_name");
     expect(mapDealToFreshworks(dealInput)).toMatchObject({ deal: { name: expect.stringContaining("AF-2026-000001") } });
   });
 });

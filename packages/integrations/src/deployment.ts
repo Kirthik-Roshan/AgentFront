@@ -59,8 +59,12 @@ export class VercelCLIProvider implements DeploymentProvider {
   constructor(
     private readonly token: string,
     private readonly executable = "vercel",
+    private readonly teamId?: string,
   ) {
     if (!token.trim()) throw new Error("Vercel deployment token is required.");
+    if (teamId?.trim() && !/^[A-Za-z0-9_-]{1,128}$/.test(teamId.trim())) {
+      throw new Error("VERCEL_TEAM_ID must be a Vercel team ID or slug.");
+    }
   }
 
   async deploy(request: DeploymentRequest, idempotencyKey: string): Promise<Deployment> {
@@ -73,7 +77,10 @@ export class VercelCLIProvider implements DeploymentProvider {
     // --name is omitted. AgentFront project IDs intentionally use uppercase
     // `AF-...`, so pass a provider-safe lowercase name explicitly.
     const vercelProjectName = request.project.projectId.toLowerCase();
-    const result = await runProcess(this.executable, ["deploy", "--prod", "--yes", "--no-color", "--name", vercelProjectName], {
+    const teamArguments = this.teamId?.trim() ? ["--team", this.teamId.trim()] : [];
+    const result = await runProcess(this.executable, [
+      "deploy", "--prod", "--yes", "--no-color", "--name", vercelProjectName, ...teamArguments,
+    ], {
       cwd: request.buildPath,
       env: environment,
       allowedEnvKeys: ["VERCEL_TOKEN"],
@@ -104,15 +111,24 @@ export class VercelCLIProvider implements DeploymentProvider {
   }
 
   async health(): Promise<IntegrationHealth> {
-    const result = await runProcess(this.executable, ["--version"], {
-      timeoutMs: 5_000,
+    const environment = createRestrictedProcessEnvironment();
+    environment.VERCEL_TOKEN = this.token;
+    environment.NO_COLOR = "1";
+    const teamArguments = this.teamId?.trim() ? ["--team", this.teamId.trim()] : [];
+    const result = await runProcess(this.executable, ["whoami", "--no-color", ...teamArguments], {
+      env: environment,
+      allowedEnvKeys: ["VERCEL_TOKEN"],
+      redactValues: [this.token],
+      timeoutMs: 10_000,
     }).catch(() => null);
     return {
       integration: "deployment",
       provider: this.name,
       mode: this.mode,
       status: result?.exitCode === 0 ? "CONNECTED" : "DEGRADED",
-      message: result?.exitCode === 0 ? "Vercel CLI and token are configured." : "Vercel CLI is unavailable.",
+      message: result?.exitCode === 0
+        ? "Vercel CLI token and deployment scope are authenticated."
+        : "Vercel CLI is installed, but token/team authentication failed.",
       checkedAt: new Date().toISOString(),
     };
   }

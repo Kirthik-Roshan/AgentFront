@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { BuildRequest } from "@agentfront/types";
 import { afterEach, describe, expect, it } from "vitest";
-import { DemoDeveloperProvider } from "./developer";
+import { ClaudeDeveloperProvider, DemoDeveloperProvider } from "./developer";
 
 const temporaryRoots: string[] = [];
 
@@ -14,7 +14,13 @@ async function makeRoot(): Promise<string> {
   await writeFile(join(root, "templates", "restaurant", "index.html"), "<!doctype html><title>Template</title>\n", "utf8");
   await writeFile(
     join(root, "templates", "restaurant", "business.config.json"),
-    `${JSON.stringify({ meta: {}, business: {}, hero: {}, features: {} }, null, 2)}\n`,
+    `${JSON.stringify({
+      meta: {},
+      business: {},
+      hero: {},
+      about: { facts: [{ value: "01", label: "Baseline fact" }] },
+      features: {},
+    }, null, 2)}\n`,
     "utf8",
   );
   return root;
@@ -72,6 +78,153 @@ afterEach(async () => {
 });
 
 describe("generated developer workspaces", () => {
+  it("lets Claude customize only bounded template configuration while preserving verified identity", async () => {
+    const root = await makeRoot();
+    const fetchMock = async (_input: string | URL | Request, init?: RequestInit) => {
+      const request = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const content = JSON.parse(request.messages[0]!.content) as { current_config: Record<string, unknown> };
+      expect(request.messages[0]?.content).toContain("SpiceRoute Kitchen");
+      expect((init?.headers as Record<string, string>)["X-API-Key"]).toBe("anthropic-test-key");
+      const configuration = structuredClone(content.current_config) as {
+        meta: Record<string, unknown>;
+        business: Record<string, unknown>;
+        hero: Record<string, unknown>;
+        features: Record<string, unknown>;
+      };
+      configuration.meta.projectId = "model-must-not-change-this";
+      configuration.business.name = "Invented identity";
+      configuration.hero.title = "A warm Chennai table";
+      configuration.hero.description = "Direct ordering and a welcoming menu.";
+      configuration.features.menu = false;
+      return new Response(JSON.stringify({
+        content: [{
+          type: "tool_use",
+          name: "write_business_configuration",
+          input: {
+            configuration_json: JSON.stringify(configuration),
+            summary: "Adjusted approved restaurant copy.",
+          },
+        }],
+        usage: { input_tokens: 120, output_tokens: 80 },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    };
+    const result = await new ClaudeDeveloperProvider({
+      apiKey: "anthropic-test-key",
+      model: "claude-sonnet-4-6",
+      fetch: fetchMock as typeof fetch,
+    }).build(makeRequest(root));
+    const configuration = JSON.parse(await readFile(join(result.buildPath, "business.config.json"), "utf8")) as {
+      meta: { projectId: string };
+      business: { name: string };
+      hero: { title: string };
+      features: { menu: boolean };
+    };
+    expect(result.mode).toBe("REAL");
+    expect(configuration.hero.title).toBe("A warm Chennai table");
+    expect(configuration.meta.projectId).toBe("AF-2026-000001");
+    expect(configuration.business.name).toBe("SpiceRoute Kitchen");
+    expect(configuration.features.menu).toBe(true);
+  });
+
+  it("reports Claude connected only after the configured model is authenticated", async () => {
+    const connectedFetch = async (input: string | URL | Request, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api.anthropic.com/v1/models/claude-sonnet-4-6");
+      expect(init?.method).toBe("GET");
+      expect((init?.headers as Record<string, string>)["X-API-Key"]).toBe("anthropic-test-key");
+      return new Response(JSON.stringify({ id: "claude-sonnet-4-6", type: "model" }), { status: 200 });
+    };
+    const connected = new ClaudeDeveloperProvider({
+      apiKey: "anthropic-test-key",
+      model: "claude-sonnet-4-6",
+      fetch: connectedFetch as typeof fetch,
+    });
+    await expect(connected.health()).resolves.toMatchObject({ status: "CONNECTED", mode: "REAL" });
+
+    const rejected = new ClaudeDeveloperProvider({
+      apiKey: "invalid-test-key",
+      model: "claude-sonnet-4-6",
+      fetch: (async () => new Response("unauthorized", { status: 401 })) as typeof fetch,
+    });
+    await expect(rejected.health()).resolves.toMatchObject({ status: "DEGRADED", mode: "REAL" });
+  });
+
+  it.each([
+    {
+      mismatch: "array",
+      expectedPath: "about.facts",
+      mutate: (configuration: Record<string, unknown>) => {
+        (configuration.about as Record<string, unknown>).facts = {};
+      },
+    },
+    {
+      mismatch: "object",
+      expectedPath: "hero",
+      mutate: (configuration: Record<string, unknown>) => {
+        configuration.hero = [];
+      },
+    },
+    {
+      mismatch: "scalar",
+      expectedPath: "hero.title",
+      mutate: (configuration: Record<string, unknown>) => {
+        (configuration.hero as Record<string, unknown>).title = 42;
+      },
+    },
+    {
+      mismatch: "nested array item",
+      expectedPath: "about.facts[0].value",
+      mutate: (configuration: Record<string, unknown>) => {
+        const facts = (configuration.about as { facts: Array<Record<string, unknown>> }).facts;
+        facts[0]!.value = 1;
+      },
+    },
+    {
+      mismatch: "missing field",
+      expectedPath: "hero.title",
+      mutate: (configuration: Record<string, unknown>) => {
+        delete (configuration.hero as Record<string, unknown>).title;
+      },
+    },
+    {
+      mismatch: "unsupported field",
+      expectedPath: "hero.unapprovedCopy",
+      mutate: (configuration: Record<string, unknown>) => {
+        (configuration.hero as Record<string, unknown>).unapprovedCopy = "Not in the template schema";
+      },
+    },
+    {
+      mismatch: "item without a baseline array schema",
+      expectedPath: "offers[0]",
+      mutate: (configuration: Record<string, unknown>) => {
+        (configuration.offers as unknown[]).push({ title: "Unapproved offer" });
+      },
+    },
+  ])("rejects a Claude $mismatch that violates the selected template schema", async ({ expectedPath, mutate }) => {
+    const root = await makeRoot();
+    const fetchMock = async (_input: string | URL | Request, init?: RequestInit) => {
+      const request = JSON.parse(String(init?.body)) as { messages: Array<{ content: string }> };
+      const content = JSON.parse(request.messages[0]!.content) as { current_config: Record<string, unknown> };
+      const configuration = structuredClone(content.current_config);
+      mutate(configuration);
+      return new Response(JSON.stringify({
+        content: [{
+          type: "tool_use",
+          name: "write_business_configuration",
+          input: {
+            configuration_json: JSON.stringify(configuration),
+            summary: "Returned an invalid configuration shape.",
+          },
+        }],
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    };
+
+    const escapedPath = expectedPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    await expect(new ClaudeDeveloperProvider({
+      apiKey: "anthropic-test-key",
+      fetch: fetchMock as typeof fetch,
+    }).build(makeRequest(root))).rejects.toThrow(new RegExp(`schema mismatch.*${escapedPath}`, "i"));
+  });
+
   it("creates an immutable ownership manifest before returning a customized workspace", async () => {
     const root = await makeRoot();
     const result = await new DemoDeveloperProvider().build(makeRequest(root));

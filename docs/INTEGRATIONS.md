@@ -27,7 +27,28 @@ Map AgentFront states to tenant-specific stages during setup. The default lifecy
 
 All create calls carry the AgentFront ID and use in-process idempotency keys. Returned account/contact/deal IDs are persisted before moving the lead forward. After an API crash during a provider call, operators must reconcile by the AgentFront correlation before retrying because a durable provider reconciliation ledger is not yet implemented. Notes should contain concise lifecycle facts rather than raw provider secrets or full private transcripts.
 
-## ElevenLabs
+## Sarvam Voice Agents and Vobiz
+
+The reviewed sales path uses Sarvam Instant Outbound with its configured
+Vobiz connection. It is deliberately founder-triggered: the founder must inspect
+a qualified record, confirm its exact Google Places phone, and press the Sarvam
+call button. No discovery or queue event auto-dials. The call must also satisfy
+server-side calling-hour, retry and do-not-contact policy, and the public HTTPS
+callback must reach AgentFront before dialing. Keep
+`SARVAM_ALLOW_DISCOVERED_DESTINATIONS=false` for the single-number demo; set it
+to `true` only for this reviewed Google Places destination flow.
+
+The post-call route verifies its opaque callback token and correlates the
+attempt, business and call IDs with PostgreSQL before accepting the transcript
+and final agent variables. The local `dev:sarvam` launcher generates a fresh
+process-only token on every run; a persistent deployment must supply the same
+kind of secret from its secret manager. A validated won result persists the
+accepted specification and enqueues the developer stage. See
+[SARVAM_SALES_AGENT.md](./SARVAM_SALES_AGENT.md) for the exact single-state
+agent, variable and local-tunnel setup. This integration is separate from the
+legacy browser conversation below.
+
+## ElevenLabs (legacy browser conversation)
 
 The REAL browser session uses `@elevenlabs/react` with a short-lived server-authorized WebSocket flow:
 
@@ -45,9 +66,23 @@ Production browser access uses AgentFront's same-site HttpOnly founder session. 
 
 Record customer consent and calling-window policy before enabling telephony adapters. Stage‑1 browser conversation does not require Twilio or Exotel.
 
-## Codex CLI
+## OpenAI, Claude and Codex
 
-The Stage‑1 orchestrator checks that `codex` exists and is enabled. It copies an allow-listed template into an ownership-bound child of the ignored runtime build root, writes the validated specification, and starts Codex with a fixed instruction and working directory. Do not expose a general shell endpoint. `workspace-write` constrains writes but does not prevent reads of other host-visible files, so it is not a tenant boundary.
+The controlled SpiceRoute developer path selects the existing restaurant
+template and sends only its validated project specification and current
+`business.config.json` to OpenAI. The response must match the baseline JSON
+shape and value types exactly, remain within size/depth limits, and contain no
+executable content. AgentFront writes that bounded configuration, then normal
+code runs QA and deployment. OpenAI does not create repositories, run commands
+or deploy the site.
+
+The legacy Codex CLI adapter remains optional. The orchestrator checks that
+`codex` exists and is enabled, copies an allow-listed template into an
+ownership-bound child of the ignored runtime build root, writes the validated
+specification, and starts Codex with a fixed instruction and working directory.
+Do not expose a general shell endpoint. `workspace-write` constrains writes but
+does not prevent reads of other host-visible files, so it is not a tenant
+boundary.
 
 Recommended production controls:
 
@@ -61,4 +96,9 @@ Recommended production controls:
 
 ## Deployment
 
-Implement provider-specific deployment behind `DeploymentProvider`. A deploy command must be idempotent by project/version and must require a passing QA record. Store the provider deployment ID and public URL separately; a retry should reconcile an existing remote operation before creating another.
+Deployment remains behind `DeploymentProvider`. The current real adapter runs
+the Vercel CLI with a server-only scoped token only after deterministic QA
+passes; the demo adapter records a visibly simulated URL. Store the provider
+deployment ID and public URL separately. Before horizontal production scaling,
+a retry must reconcile an existing remote operation by AgentFront project and
+version rather than creating a duplicate deployment.

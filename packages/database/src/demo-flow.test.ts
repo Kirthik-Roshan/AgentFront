@@ -2,8 +2,9 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createProviderSet } from "@agentfront/integrations";
+import { ClaudeDeveloperProvider, createProviderSet } from "@agentfront/integrations";
 import { AgentEventBus, AgentFrontOrchestrator } from "@agentfront/orchestration";
+import type { SalesBusinessDetail } from "@agentfront/types";
 import { demoBusinesses, demoCampaign } from "./demo-data";
 import { InMemoryAgentFrontStore } from "./in-memory-store";
 
@@ -60,7 +61,7 @@ describe("canonical Stage-1 pipeline", () => {
     ) as { meta: { preview: boolean; projectId: string }; business: { name: string; phoneDisplay: string } };
     expect(generatedConfig).toMatchObject({
       meta: { preview: false, projectId: "AF-2026-000001" },
-      business: { name: "SpiceRoute Kitchen", phoneDisplay: "+91 98400 12001" },
+      business: { name: "SpiceRoute Kitchen", phoneDisplay: "+917339140080" },
     });
   });
 
@@ -191,5 +192,148 @@ describe("canonical Stage-1 pipeline", () => {
     store.updateCampaignStatus(demoCampaign.id, "RUNNING");
     const resumed = await orchestrator.run(enrolled.lead.id);
     expect(resumed.lead.status).toBe("DEPLOYED");
+  });
+
+  it("delivers a newer sales specification through Claude without overwriting an older deployment", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agentfront-sales-delivery-isolation-"));
+    temporaryDirectories.push(root);
+    const store = new InMemoryAgentFrontStore();
+    const providers = createProviderSet({ DEMO_MODE: "true" }, demoBusinesses);
+    const orchestrator = new AgentFrontOrchestrator(store, providers, new AgentEventBus(), {
+      templateRoot: join(process.cwd(), "templates"),
+      outputRoot: join(root, "generated-sites"),
+    });
+    const business = store.getBusiness("business-spiceroute");
+    expect(business).not.toBeNull();
+
+    const legacyEnrollment = await orchestrator.start({
+      business: business!,
+      campaign: demoCampaign,
+      idempotencyKey: "legacy-spiceroute-deployment",
+    });
+    const legacyDeployment = await orchestrator.run(legacyEnrollment.lead.id);
+    expect(legacyDeployment).toMatchObject({
+      lead: { status: "DEPLOYED", projectId: "AF-2026-000001" },
+      deployment: { status: "DEPLOYED" },
+    });
+    const legacySnapshot = structuredClone(legacyDeployment);
+
+    let claudeCalls = 0;
+    providers.developer = new ClaudeDeveloperProvider({
+      apiKey: "anthropic-test-key",
+      fetch: (async (_input: string | URL | Request, init?: RequestInit) => {
+        claudeCalls += 1;
+        const body = JSON.parse(String(init?.body)) as {
+          messages: Array<{ content: string }>;
+        };
+        const request = JSON.parse(body.messages[0]!.content) as {
+          project_spec: { projectId: string; clientBrief?: string[] };
+          current_config: Record<string, unknown> & { hero?: Record<string, unknown> };
+        };
+        expect(request.project_spec.projectId).toBe("AF-2026-000002");
+        expect(request.project_spec.clientBrief).toContain("Feature an approved family dinner package.");
+        const configuration = {
+          ...request.current_config,
+          hero: {
+            ...request.current_config.hero,
+            title: "Family dining, shaped around your requirements",
+          },
+        };
+        return new Response(JSON.stringify({
+          content: [{
+            type: "tool_use",
+            name: "write_business_configuration",
+            input: {
+              configuration_json: JSON.stringify(configuration),
+              summary: "Applied the approved SpiceRoute brief to the existing restaurant template.",
+            },
+          }],
+          usage: { input_tokens: 100, output_tokens: 50 },
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }) as typeof fetch,
+    });
+
+    const now = "2026-09-23T10:00:00.000Z";
+    const salesDetail: SalesBusinessDetail = {
+      business: {
+        ...business!,
+        businessCode: "AF-BIZ-000032",
+        freshworksAccountId: "fresh-account-spiceroute",
+        freshworksDealId: "fresh-deal-spiceroute",
+        salesState: "SPEC_GENERATED",
+        updatedAt: now,
+      },
+      contacts: [{
+        id: "contact-spiceroute-owner",
+        businessId: business!.id,
+        freshworksContactId: "fresh-contact-spiceroute",
+        name: "SpiceRoute Owner",
+        phone: "+91 98400 99999",
+        normalizedPhone: "+919840099999",
+        roles: ["OWNER"],
+        isDecisionMaker: true,
+        preferredLanguage: "TAMIL",
+        source: "OUTBOUND_CALL",
+        verified: true,
+        dedupeKey: "spiceroute-owner",
+        createdAt: now,
+        updatedAt: now,
+      }],
+      calls: [],
+      memory: null,
+      followUps: [],
+      events: [],
+      transitions: [],
+      projectSpec: {
+        id: "sales-spec-spiceroute-v2",
+        businessId: business!.id,
+        contactId: "contact-spiceroute-owner",
+        version: 2,
+        specification: {
+          schemaVersion: 1,
+          businessId: business!.id,
+          business: { name: business!.name, category: "restaurant", city: business!.city,
+            phone: "+914440002222" },
+          contact: { id: "contact-spiceroute-owner", name: "SpiceRoute Owner", roles: ["OWNER"] },
+          requirements: {
+            pages: ["Home", "Menu", "Gallery", "Contact"],
+            features: { menu: true, gallery: true, whatsappOrdering: true, googleMaps: true },
+            notes: ["Feature an approved family dinner package."],
+          },
+          branding: { style: "premium traditional", primaryColour: "#b3471d" },
+          commercial: { quotedPrice: 8_000, agreedPrice: 7_200, currency: "INR" },
+        },
+        status: "READY",
+        idempotencyKey: "sales-spec-spiceroute-v2",
+        createdAt: now,
+        updatedAt: now,
+      },
+    };
+
+    const handedOff = await orchestrator.handoffSalesSpecification(salesDetail, demoCampaign.id);
+    expect(handedOff).toMatchObject({
+      lead: { status: "SPEC_GENERATED", projectId: "AF-2026-000002" },
+      campaign: { id: "sales-spec-sales-spec-spiceroute-v2" },
+      deal: { status: "WON", finalAmount: 7_200 },
+    });
+    expect(handedOff.lead.id).not.toBe(legacyDeployment.lead.id);
+
+    const delivered = await orchestrator.run(handedOff.lead.id);
+    expect(claudeCalls).toBe(1);
+    expect(delivered).toMatchObject({
+      lead: { status: "DEPLOYED", projectId: "AF-2026-000002" },
+      project: { status: "DEPLOYED" },
+      deployment: { status: "DEPLOYED" },
+    });
+    expect(delivered.events).toContainEqual(expect.objectContaining({
+      eventType: "build.succeeded",
+      metadata: expect.objectContaining({ provider: "Claude Template Customizer", providerMode: "REAL" }),
+    }));
+
+    const persistedLegacy = await store.findByLeadId(legacyDeployment.lead.id);
+    expect(persistedLegacy).toEqual(legacySnapshot);
+    expect((await store.list()).map((aggregate) => aggregate.lead.id)).toEqual(
+      expect.arrayContaining([legacyDeployment.lead.id, delivered.lead.id]),
+    );
   });
 });

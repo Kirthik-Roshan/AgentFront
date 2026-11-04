@@ -26,11 +26,13 @@ export function mapBusinessToFreshworksAccount(input: CRMAccountInput): JsonObje
 
 export function mapBusinessToFreshworksContact(input: CRMContactInput): JsonObject {
   const [firstName, ...remaining] = input.displayName.trim().split(/\s+/);
+  if (!firstName) throw new Error("Freshworks contact display name is required.");
   return {
     contact: {
-      first_name: firstName || input.business.name,
-      last_name: remaining.join(" ") || "Owner",
-      mobile_number: input.business.phone,
+      first_name: firstName,
+      ...(remaining.length ? { last_name: remaining.join(" ") } : {}),
+      mobile_number: input.contactPhone ?? input.business.phone,
+      ...(input.contactEmail ? { email: input.contactEmail } : {}),
       sales_accounts: [{ id: Number(input.accountId), is_primary: true }],
     },
   };
@@ -97,10 +99,10 @@ export class FreshworksCRMProvider implements CRMProvider {
   async createAccount(input: CRMAccountInput, idempotencyKey: string): Promise<CRMRecord> {
     const replay = this.#idempotentRecords.get(idempotencyKey);
     if (replay) return replay;
-    const response = await requestJson<{ sales_account: unknown }>(this.name, `${this.#baseUrl}/sales_accounts`, {
+    const response = await requestJson<{ sales_account: unknown }>(this.name, `${this.#baseUrl}/sales_accounts/upsert`, {
       method: "POST",
       headers: this.#headers,
-      body: JSON.stringify(mapBusinessToFreshworksAccount(input)),
+      body: JSON.stringify({ unique_identifier: { name: input.business.name }, ...mapBusinessToFreshworksAccount(input) }),
     });
     const id = readId(response.sales_account, "sales account");
     const record = { id, url: `${this.#baseUrl.replace(/\/api$/, "")}/sales_accounts/${id}`, created: true };
@@ -111,10 +113,15 @@ export class FreshworksCRMProvider implements CRMProvider {
   async createContact(input: CRMContactInput, idempotencyKey: string): Promise<CRMRecord> {
     const replay = this.#idempotentRecords.get(idempotencyKey);
     if (replay) return replay;
-    const response = await requestJson<{ contact: unknown }>(this.name, `${this.#baseUrl}/contacts`, {
+    const response = await requestJson<{ contact: unknown }>(this.name, `${this.#baseUrl}/contacts/upsert`, {
       method: "POST",
       headers: this.#headers,
-      body: JSON.stringify(mapBusinessToFreshworksContact(input)),
+      body: JSON.stringify({
+        unique_identifier: input.contactEmail
+          ? { emails: input.contactEmail }
+          : { mobile_number: input.contactPhone ?? input.business.phone },
+        ...mapBusinessToFreshworksContact(input),
+      }),
     });
     const id = readId(response.contact, "contact");
     const record = { id, url: `${this.#baseUrl.replace(/\/api$/, "")}/contacts/${id}`, created: true };

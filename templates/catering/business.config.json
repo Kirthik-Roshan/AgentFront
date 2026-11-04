@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "previewLabel": "Catering template preview — replace with verified business content"
+  },
+  "theme": {
+    "accent": "#b85031"
+  },
+  "business": {
+    "name": "Gather & Grain",
+    "location": "Chennai, Tamil Nadu",
+    "phoneDisplay": "+91 90000 00000",
+    "phoneLink": "tel:+919000000000",
+    "whatsappLink": "https://wa.me/919000000000",
+    "bookingLink": "#contact",
+    "mapsLink": "https://maps.google.com/?q=Chennai"
+  },
+  "proof": [
+    {
+      "value": "4.9",
+      "label": "local rating"
+    },
+    {
+      "value": "300+",
+      "label": "happy clients"
+    },
+    {
+      "value": "Same day",
+      "label": "response"
+    }
+  ],
+  "services": [
+    {
+      "number": "01",
+      "name": "Wedding feasts",
+      "description": "A considered wedding feasts experience, tailored to your needs with clear next steps."
+    },
+    {
+      "number": "02",
+      "name": "Corporate tables",
+      "description": "A considered corporate tables experience, tailored to your needs with clear next steps."
+    },
+    {
+      "number": "03",
+      "name": "Intimate gatherings",
+      "description": "A considered intimate gatherings experience, tailored to your needs with clear next steps."
+    }
+  ],
+  "gallery": [
+    {
+      "title": "Signature experience",
+      "label": "Designed around you"
+    },
+    {
+      "title": "Local craft",
+      "label": "People who care"
+    },
+    {
+      "title": "Every detail",
+      "label": "Thoughtfully finished"
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Gather & Grain made the whole experience feel effortless from the first conversation.",
+      "author": "Local client · Chennai"
+    },
+    {
+      "quote": "Clear, warm and genuinely attentive—the kind of service you recommend immediately.",
+      "author": "Verified customer"
+    }
+  ],
+  "hours": [
+    {
+      "days": "Monday — Saturday",
+      "time": "9:00 — 19:00"
+    },
+    {
+      "days": "Sunday",
+      "time": "By appointment"
+    }
+  ]
+}

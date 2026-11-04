@@ -1,20 +1,32 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { calculateOpportunityScore } from "@agentfront/scoring";
+import {
+  buildElevenLabsDynamicVariables,
+  createDodoTestCheckout,
+  dodoTestConfigFromEnv,
+  verifyDodoTestWebhook,
+} from "@agentfront/integrations";
+import { resolveBusinessVertical } from "@agentfront/types";
 import type {
   ApiResponse,
   BusinessType,
   CampaignStatus,
   ConversationOutcome,
+  IntegrationHealth,
   LeadAggregate,
   PipelineState,
   PlacesSearchRequest,
   ProjectFeature,
 } from "@agentfront/types";
 import type { ApiRuntime } from "./runtime";
+import { handleDodoTestRoute, type DodoTestRoutes } from "./dodo-routes";
+import { handleSalesRoute } from "./sales-routes";
+import { handleSarvamOutboundWebhook } from "./sarvam-routes";
+import { handleVoiceToolRoute } from "./voice-tools";
 import { FounderSessionAuth } from "./session-auth";
 
-const businessTypes = new Set<BusinessType>(["restaurant", "salon", "garments", "mechanic"]);
+const businessTypes = new Set<BusinessType>(["restaurant", "salon", "garments", "mechanic", "clinic", "education", "realestate", "fitness", "bakery", "legal"]);
 const projectFeatures = new Set<ProjectFeature>([
   "menu",
   "gallery",
@@ -29,6 +41,7 @@ const projectFeatures = new Set<ProjectFeature>([
 const sentiments = new Set(["POSITIVE", "NEUTRAL", "NEGATIVE", "UNKNOWN"] as const);
 const transcriptSpeakers = new Set(["AGENT", "CUSTOMER", "SYSTEM"] as const);
 const currencies = new Set(["INR", "USD"] as const);
+const websitePresences = new Set<NonNullable<PlacesSearchRequest["websitePresence"]>>(["ANY", "MISSING", "PRESENT"]);
 const routeIdentifierPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
@@ -393,22 +406,77 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
   const configuredToken = environment.AGENTFRONT_API_TOKEN?.trim() || null;
   const configuredConversationToolSecret = environment.ELEVENLABS_TOOL_SECRET?.trim() || null;
   const production = environment.NODE_ENV?.trim().toLowerCase() === "production";
+  if (production && configuredToken && configuredToken.length < 32) {
+    throw new Error("AGENTFRONT_API_TOKEN must contain at least 32 characters in production.");
+  }
+  const configuredSessionSecret = environment.AGENTFRONT_SESSION_SECRET?.trim();
+  if (production && configuredSessionSecret && configuredSessionSecret.length < 32) {
+    throw new Error("AGENTFRONT_SESSION_SECRET must contain at least 32 characters in production.");
+  }
   const explicitLoopbackDemo = environment.ALLOW_UNAUTHENTICATED_LOOPBACK_DEMO?.trim().toLowerCase() === "true";
-  const authenticationRequired = Boolean(configuredToken) || !isLoopbackHost(bindHost) || (production && !explicitLoopbackDemo);
-  const origin = environment.WEB_ORIGIN?.trim() || "http://localhost:3000";
+  // An explicit loopback-only demo can open directly with no founder-login
+  // page. Non-loopback/public deployments remain protected; removing a UI
+  // screen must not publish control APIs.
+  const explicitLoopbackBypass = isLoopbackHost(bindHost) && explicitLoopbackDemo;
+  const authenticationRequired = !explicitLoopbackBypass &&
+    (Boolean(configuredToken) || !isLoopbackHost(bindHost) || production);
+  const configuredOrigin = environment.WEB_ORIGIN?.trim() || "http://localhost:3000";
+  const parsedOrigin = new URL(configuredOrigin);
+  if (!new Set(["http:", "https:"]).has(parsedOrigin.protocol) ||
+      parsedOrigin.origin !== configuredOrigin.replace(/\/$/, "")) {
+    throw new Error("WEB_ORIGIN must be an exact HTTP(S) origin without a path, query or fragment.");
+  }
+  const origin = parsedOrigin.origin;
   const sessionAuth = configuredToken
     ? new FounderSessionAuth({
         apiToken: configuredToken,
-        sessionSecret: environment.AGENTFRONT_SESSION_SECRET,
+        sessionSecret: configuredSessionSecret,
         secureCookie: production || origin.startsWith("https://"),
       })
     : null;
   const loginAttempts = new Map<string, { count: number; resetAt: number }>();
   const healthTtlMs = Math.max(1_000, Number(environment.AGENTFRONT_HEALTH_TTL_MS ?? 30_000) || 30_000);
+  const currentSpiceRoutePaymentProjectId = async (): Promise<string> => {
+    const aggregates = await runtime.store.list();
+    const current = aggregates
+      .filter((aggregate) =>
+        aggregate.lead.businessId === "business-spiceroute" &&
+        aggregate.lead.campaignId.startsWith("sales-spec-"))
+      .sort((left, right) => right.lead.updatedAt.localeCompare(left.lead.updatedAt))[0];
+    return current?.lead.projectId ?? "AF-2026-000001";
+  };
+  const dodoTestRoutes: DodoTestRoutes = {
+    createCheckoutOnce: async (idempotencyKey, customer) => {
+      const repository = runtime.dodoTestRepository;
+      if (!repository) {
+        throw Object.assign(new Error("PostgreSQL persistence is required for test checkout."), { code: "PAYMENTS_UNAVAILABLE" });
+      }
+      const configuration = dodoTestConfigFromEnv(environment, await currentSpiceRoutePaymentProjectId());
+      const reservation = await repository.reserveCheckoutOnce(idempotencyKey, customer, configuration);
+      if (reservation.kind === "ready") return reservation.session;
+      if (reservation.kind === "in_progress") {
+        throw Object.assign(new Error("This checkout is still being created. Retry with the same idempotency key."), { code: "CHECKOUT_IN_PROGRESS" });
+      }
+      try {
+        const session = await createDodoTestCheckout(configuration, customer);
+        return await repository.finalizeCheckoutReservation(idempotencyKey, reservation.reservationToken, session);
+      } catch (error) {
+        await repository.releaseCheckoutReservation(idempotencyKey, reservation.reservationToken).catch(() => undefined);
+        throw error;
+      }
+    },
+    verifyWebhook: (rawBody, headers) => verifyDodoTestWebhook(dodoTestConfigFromEnv(environment), rawBody, headers),
+    confirmPaymentOnce: async (payment) => {
+      if (!runtime.dodoTestRepository) {
+        throw Object.assign(new Error("PostgreSQL persistence is required for test payment."), { code: "PAYMENTS_UNAVAILABLE" });
+      }
+      return runtime.dodoTestRepository.confirmPaymentOnce(payment);
+    },
+  };
   type DetailedHealth = {
     service: "agentfront-api";
     persistence: Awaited<ReturnType<typeof runtime.persistence.health>>;
-    integrations: Awaited<ReturnType<typeof runtime.providers.places.health>>[];
+    integrations: IntegrationHealth[];
   };
   let cachedHealth: { value: DetailedHealth; expiresAt: number } | null = null;
   let healthInFlight: Promise<DetailedHealth> | null = null;
@@ -421,13 +489,35 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
       Promise.all([
         runtime.providers.places.health(),
         runtime.providers.crm.health(),
+        runtime.support.health(),
         runtime.providers.conversation.health(),
+        runtime.telephony.health(),
         runtime.providers.developer.health(),
         runtime.providers.deployment.health(),
       ]),
       runtime.persistence.health(),
-    ]).then(([integrations, persistence]) => {
-      const value: DetailedHealth = { service: "agentfront-api", persistence, integrations };
+      runtime.salesRepository.getLatestWorkerHeartbeat().catch(() => null),
+    ]).then(([integrations, persistence, heartbeat]) => {
+      const checkedAt = new Date().toISOString();
+      const durable = persistence.mode === "POSTGRESQL" && persistence.status === "CONNECTED";
+      const lastSeen = heartbeat ? Date.parse(heartbeat.lastSeenAt) : Number.NaN;
+      const workerFresh = Number.isFinite(lastSeen) && Date.now() - lastSeen <= 20_000 && Date.now() >= lastSeen;
+      const jobQueue: IntegrationHealth = {
+        integration: "jobQueue", provider: durable ? "PostgreSQL SalesJob" : "Local process",
+        mode: durable ? "REAL" : "DEMO",
+        status: durable ? "CONNECTED" : persistence.status === "DEGRADED" ? "DEGRADED" : "DEMO",
+        message: durable ? "Durable PostgreSQL jobs and CRM outbox are reachable." : "No durable PostgreSQL job queue is available.", checkedAt,
+      };
+      const scheduler: IntegrationHealth = {
+        integration: "scheduler", provider: "AgentFront Local Worker",
+        mode: "DEMO", status: workerFresh ? "CONNECTED" : heartbeat || persistence.status === "DEGRADED" ? "DEGRADED" : "NOT_CONFIGURED",
+        message: workerFresh ? `Worker heartbeat received at ${heartbeat!.lastSeenAt}.`
+          : heartbeat ? `Worker heartbeat is stale (last seen ${heartbeat.lastSeenAt}).`
+            : persistence.status === "DEGRADED" ? "Worker heartbeat cannot be verified while PostgreSQL is unavailable."
+            : "No worker heartbeat found. Start npm run dev:worker with DATABASE_URL configured.",
+        checkedAt,
+      };
+      const value: DetailedHealth = { service: "agentfront-api", persistence, integrations: [...integrations, jobQueue, scheduler] };
       cachedHealth = { value, expiresAt: Date.now() + healthTtlMs };
       return value;
     }).finally(() => {
@@ -436,7 +526,28 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
     return healthInFlight;
   };
 
-  const queuePipelineRun = (leadId: string, eventType = "pipeline.run.failed"): void => {
+  const queuePipelineRun = async (leadId: string, eventType = "pipeline.run.failed", resumeKey?: string): Promise<void> => {
+    if (await runtime.controlTower?.emergencyStopped() ?? runtime.environmentEmergencyStopped) {
+      throw new HttpError(409, "EMERGENCY_STOPPED", "New pipeline work is paused by the emergency stop.");
+    }
+    if (runtime.controlTower) {
+      const aggregate = await runtime.store.findByLeadId(leadId);
+      if (!aggregate) throw new HttpError(404, "LEAD_NOT_FOUND", "Lead was not found for durable continuation.");
+      const key = resumeKey ?? `pipeline:${leadId}:${aggregate.lead.status}:${aggregate.lead.version}`;
+      await runtime.controlTower.append({
+        businessId: aggregate.business.id, sourceAgent: "SALES",
+        eventType: "PIPELINE_CONTINUATION_REQUESTED",
+        idempotencyKey: key,
+        correlationId: aggregate.lead.projectId,
+        message: `Persisted pipeline continuation requested from ${aggregate.lead.status}.`,
+        payload: { leadId, state: aggregate.lead.status, providerMode: "LEGACY_PIPELINE" },
+        nextJob: { agentType: ["BUILD_QUEUED", "BUILDING", "QA", "DEPLOYING", "SPEC_GENERATED"].includes(aggregate.lead.status)
+          ? "DEVELOPER" : "SALES", type: "RUN_LEGACY_PIPELINE", payload: { leadId },
+          dedupeKey: key,
+          maxAttempts: 3 },
+      });
+      return;
+    }
     queueMicrotask(() => {
       void runtime.orchestrator.run(leadId).catch((error: unknown) => {
         const message = error instanceof Error ? error.message : "Unknown background pipeline failure.";
@@ -455,6 +566,7 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
       response.setHeader("X-Content-Type-Options", "nosniff");
       response.setHeader("X-Frame-Options", "DENY");
       response.setHeader("Referrer-Policy", "no-referrer");
+      response.setHeader("Permissions-Policy", "camera=(), geolocation=(), microphone=(self)");
       if (request.method === "OPTIONS") {
         response.writeHead(204);
         response.end();
@@ -465,7 +577,8 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
       const { pathname, searchParams } = url;
       const publicRoute = (request.method === "GET" &&
         (pathname === "/" || pathname === "/api" || pathname === "/api/health" || pathname === "/api/auth/session")) ||
-        (request.method === "POST" && (pathname === "/api/auth/session" || pathname === "/api/auth/logout"));
+        (request.method === "POST" && (pathname === "/api/auth/session" || pathname === "/api/auth/logout" ||
+          pathname === "/api/webhooks/dodo-test" || pathname === "/api/webhooks/sarvam/outbound"));
       const conversationCompletionLeadId = request.method === "POST"
         ? routeId(pathname, "/api/leads/", "/conversation/complete")
         : null;
@@ -479,7 +592,13 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
         completionBearer &&
         tokensMatch(completionBearer, configuredConversationToolSecret),
       );
-      if (!publicRoute && !toolCompletionRequest) {
+      const voiceToolRequest = request.method === "POST" && pathname.startsWith("/api/voice/tools/");
+      const authenticatedVoiceTool = Boolean(
+        voiceToolRequest && configuredConversationToolSecret && bearerToken(request) &&
+        tokensMatch(bearerToken(request)!, configuredConversationToolSecret),
+      );
+      if (voiceToolRequest && !authenticatedVoiceTool) authorizeConversationTool(request, configuredConversationToolSecret);
+      if (!publicRoute && !toolCompletionRequest && !authenticatedVoiceTool) {
         authorizeRequest(request, configuredToken, sessionAuth, authenticationRequired);
       }
 
@@ -490,6 +609,42 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
           (bearer && tokensMatch(bearer, configuredToken)) || sessionAuth?.validates(cookieHeader)
         ),
       );
+
+      if (await handleVoiceToolRoute(runtime, request, response, pathname)) return;
+      if (await handleSarvamOutboundWebhook(runtime, request, response, pathname, searchParams, environment)) return;
+      if (await handleSalesRoute(runtime, request, response, pathname, environment)) return;
+      if (await handleDodoTestRoute(request, response, pathname, dodoTestRoutes)) return;
+
+      if (request.method === "GET" && pathname === "/api/demo/spiceroute/payment") {
+        const projectId = await currentSpiceRoutePaymentProjectId();
+        let configured = true;
+        try {
+          dodoTestConfigFromEnv(environment, projectId);
+        } catch {
+          configured = false;
+        }
+        if (!runtime.dodoTestRepository) {
+          sendJson(response, 200, {
+            ok: true,
+            data: {
+              projectId,
+              mode: "TEST" as const,
+              status: "NOT_STARTED" as const,
+              checkoutUrl: null,
+              checkoutSessionId: null,
+              paymentId: null,
+              paidAt: null,
+              crmSyncedAt: null,
+              crmLastError: null,
+              configured: false,
+            },
+          });
+          return;
+        }
+        const payment = await runtime.dodoTestRepository.getPaymentStatus(projectId);
+        sendJson(response, 200, { ok: true, data: { ...payment, configured } });
+        return;
+      }
 
       if (request.method === "GET" && pathname === "/api/auth/session") {
         sendJson(response, 200, {
@@ -516,6 +671,12 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
         }
         const address = request.socket?.remoteAddress || "unknown";
         const now = Date.now();
+        for (const [key, value] of loginAttempts) {
+          if (value.resetAt <= now) loginAttempts.delete(key);
+        }
+        if (!loginAttempts.has(address) && loginAttempts.size >= 1_000) {
+          throw new HttpError(429, "AUTH_RATE_LIMITED", "Authentication is temporarily unavailable. Try again later.");
+        }
         const attempt = loginAttempts.get(address);
         if (attempt && attempt.resetAt > now && attempt.count >= 5) {
           throw new HttpError(429, "AUTH_RATE_LIMITED", "Too many authentication attempts. Try again later.", {
@@ -574,22 +735,61 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
       }
 
       if (request.method === "GET" && pathname === "/api/dashboard") {
-        const [metrics, campaigns, leads, events] = await Promise.all([
+        const [metrics, campaigns, leads, events, workflows, agentRuns, emergencyStopped] = await Promise.all([
           runtime.store.dashboardMetrics(),
           runtime.store.listCampaigns(),
           runtime.store.list(),
           runtime.store.listEvents(200),
+          runtime.controlTower?.listWorkflows(100) ?? Promise.resolve([]),
+          runtime.controlTower?.listAgentRuns(100) ?? Promise.resolve([]),
+          runtime.controlTower?.emergencyStopped() ?? Promise.resolve(runtime.environmentEmergencyStopped),
         ]);
         sendJson(response, 200, {
           ok: true,
-          data: { metrics, campaigns, leads: leads.map(publicAggregate), events },
+          data: { metrics, campaigns, leads: leads.map(publicAggregate), events, workflows, agentRuns, emergencyStopped },
         });
+        return;
+      }
+
+      if (request.method === "GET" && pathname === "/api/workflows") {
+        if (!runtime.controlTower) throw new HttpError(503, "DATABASE_REQUIRED", "Workflow status requires PostgreSQL.");
+        sendJson(response, 200, { ok: true, data: await runtime.controlTower.listWorkflows(200) });
+        return;
+      }
+
+      if (request.method === "GET" && pathname === "/api/agent-runs") {
+        if (!runtime.controlTower) throw new HttpError(503, "DATABASE_REQUIRED", "Agent runs require PostgreSQL.");
+        sendJson(response, 200, { ok: true, data: await runtime.controlTower.listAgentRuns(200) });
+        return;
+      }
+
+      if (request.method === "GET" && pathname === "/api/control/emergency-stop") {
+        sendJson(response, 200, { ok: true, data: { stopped: await runtime.controlTower?.emergencyStopped() ?? runtime.environmentEmergencyStopped } });
+        return;
+      }
+
+      if (request.method === "POST" && pathname === "/api/control/emergency-stop") {
+        if (!runtime.controlTower) throw new HttpError(503, "DATABASE_REQUIRED", "Emergency stop requires PostgreSQL.");
+        const body = requireRecord(await readJson<unknown>(request), "request body");
+        assertAllowedKeys(body, new Set(["stopped"]), "request body");
+        if (typeof body.stopped !== "boolean") throw new HttpError(400, "VALIDATION_ERROR", "stopped must be a boolean.");
+        await runtime.controlTower.setEmergencyStop(body.stopped);
+        sendJson(response, 200, { ok: true, data: { stopped: await runtime.controlTower.emergencyStopped() } });
         return;
       }
 
       if (request.method === "GET" && pathname === "/api/crm/deals") {
         const crm = runtime.providers.crm;
-        const deals = await crm.listDeals(100);
+        const [providerDeals, salesBusinesses] = await Promise.all([
+          crm.listDeals(100),
+          runtime.salesRepository.list({ limit: 500 }),
+        ]);
+        const correlatedDealIds = new Set(
+          salesBusinesses
+            .map((detail) => detail.business.freshworksDealId)
+            .filter((dealId): dealId is string => Boolean(dealId)),
+        );
+        const deals = providerDeals.filter((deal) => correlatedDealIds.has(deal.id));
         sendJson(response, 200, {
           ok: true,
           data: {
@@ -597,6 +797,7 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
             provider: crm.name,
             consoleUrl: crm.getConsoleUrl(),
             deals,
+            ignoredProviderRecords: providerDeals.length - deals.length,
           },
         });
         return;
@@ -622,26 +823,108 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
         } as const satisfies Record<string, CampaignStatus>;
         const campaignId = decodeRouteIdentifier(campaignAction[1] ?? "", "campaignId");
         const action = campaignAction[2] as keyof typeof statusByAction;
+        if (action === "start" && (await runtime.controlTower?.emergencyStopped() ?? runtime.environmentEmergencyStopped)) {
+          throw new HttpError(409, "EMERGENCY_STOPPED", "Resume the emergency stop before starting a campaign.");
+        }
         const campaign = await runtime.store.updateCampaignStatus(campaignId, statusByAction[action]);
         if (!campaign) throw new HttpError(404, "CAMPAIGN_NOT_FOUND", "Campaign was not found.");
+        if (action === "emergency-stop") await runtime.controlTower?.setEmergencyStop(true);
+        if (action === "start" && runtime.controlTower) {
+          // The old runner parks without an exception while the campaign is
+          // paused. An explicit restart schedules each unfinished lead again;
+          // provider-stage guards still decide which effects are permissible.
+          const resumedAt = randomUUID();
+          const eligible = new Set<PipelineState>([
+            "QUALIFIED", "CRM_CREATED", "OUTREACH_READY", "REQUIREMENTS_COLLECTED",
+            "NEGOTIATING", "DEAL_WON", "SPEC_GENERATED", "BUILD_QUEUED", "QA", "DEPLOYING",
+          ]);
+          const parked = (await runtime.store.list()).filter((item) =>
+            item.lead.campaignId === campaignId && eligible.has(item.lead.status));
+          for (const item of parked) {
+            await queuePipelineRun(item.lead.id, "pipeline.campaign-resume.failed",
+              `campaign-resume:${campaignId}:${resumedAt}:${item.lead.id}`);
+          }
+        }
         sendJson(response, 200, { ok: true, data: campaign });
         return;
       }
 
-      if (request.method === "GET" && (pathname === "/api/discover" || pathname === "/api/businesses")) {
-        const category = (searchParams.get("businessType") ?? searchParams.get("category") ?? "restaurant") as BusinessType;
-        if (!businessTypes.has(category)) throw new HttpError(400, "VALIDATION_ERROR", "Unsupported business type.");
-        const search: PlacesSearchRequest = {
-          location: searchParams.get("location") ?? "Sholinganallur, Chennai",
-          businessType: category,
-          radiusMetres: Number(searchParams.get("radiusMetres") ?? 5_000),
-          websitePresence: (searchParams.get("websitePresence") as PlacesSearchRequest["websitePresence"]) ?? "ANY",
-          minimumRating: Number(searchParams.get("minimumRating") ?? 0),
-          minimumReviewCount: Number(searchParams.get("minimumReviewCount") ?? 0),
-        };
-        if (!Number.isFinite(search.radiusMetres) || search.radiusMetres < 100 || search.radiusMetres > 50_000) {
-          throw new HttpError(400, "VALIDATION_ERROR", "radiusMetres must be between 100 and 50000.");
+      if (request.method === "GET" && pathname === "/api/places/business-photo") {
+        const businessId = searchParams.get("businessId") ?? "";
+        const width = Number(searchParams.get("width") ?? 240);
+        if (!businessId || businessId.length > 200) {
+          throw new HttpError(400, "VALIDATION_ERROR", "A valid businessId is required.");
         }
+        if (!Number.isFinite(width) || width < 120 || width > 1600) {
+          throw new HttpError(400, "VALIDATION_ERROR", "Photo width must be between 120 and 1600 pixels.");
+        }
+        const business = await runtime.store.getBusiness(businessId);
+        if (!business?.externalPlaceId || business.source !== "GOOGLE_PLACES") {
+          throw new HttpError(404, "PHOTO_UNAVAILABLE", "No Google Places photo is available for this business.");
+        }
+        if (!runtime.providers.places.getBusinessPhotoUri) {
+          throw new HttpError(404, "PHOTO_UNAVAILABLE", "This Places provider does not expose business photos.");
+        }
+        const photoUri = await runtime.providers.places.getBusinessPhotoUri(business.externalPlaceId, width);
+        response.writeHead(302, { Location: photoUri, "Cache-Control": "private, max-age=3600", "Referrer-Policy": "no-referrer" });
+        response.end();
+        return;
+      }
+
+      if (request.method === "GET" && pathname === "/api/places/photo") {
+        const photoName = searchParams.get("name") ?? "";
+        const width = Number(searchParams.get("width") ?? 720);
+        if (!runtime.providers.places.getPhotoUri) {
+          throw new HttpError(404, "PHOTO_UNAVAILABLE", "This Places provider does not expose business photos.");
+        }
+        if (!/^places\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+$/.test(photoName)) {
+          throw new HttpError(400, "VALIDATION_ERROR", "Invalid Google Places photo resource.");
+        }
+        if (!Number.isFinite(width) || width < 120 || width > 1600) {
+          throw new HttpError(400, "VALIDATION_ERROR", "Photo width must be between 120 and 1600 pixels.");
+        }
+        const photoUri = await runtime.providers.places.getPhotoUri(photoName, width);
+        response.writeHead(302, {
+          Location: photoUri,
+          "Cache-Control": "private, no-store",
+          "Referrer-Policy": "no-referrer",
+        });
+        response.end();
+        return;
+      }
+
+      if (request.method === "GET" && pathname === "/api/discover") {
+        const requestedVertical = searchParams.get("vertical") ?? searchParams.get("businessType") ?? searchParams.get("category") ?? "restaurant";
+        const vertical = resolveBusinessVertical(requestedVertical);
+        if (!vertical) throw new HttpError(400, "VALIDATION_ERROR", "Unsupported business vertical.");
+        const category = vertical.template;
+        const location = requireBoundedString(searchParams.get("location") ?? "Sholinganallur, Chennai", "location", 200);
+        const radiusMetres = Number(searchParams.get("radiusMetres") ?? 5_000);
+        const websitePresence = (searchParams.get("websitePresence") ?? "ANY") as NonNullable<PlacesSearchRequest["websitePresence"]>;
+        const minimumRating = Number(searchParams.get("minimumRating") ?? 0);
+        const minimumReviewCount = Number(searchParams.get("minimumReviewCount") ?? 0);
+        if (!Number.isSafeInteger(radiusMetres) || radiusMetres < 100 || radiusMetres > 50_000) {
+          throw new HttpError(400, "VALIDATION_ERROR", "radiusMetres must be an integer between 100 and 50000.");
+        }
+        if (!websitePresences.has(websitePresence)) {
+          throw new HttpError(400, "VALIDATION_ERROR", "websitePresence must be ANY, MISSING, or PRESENT.");
+        }
+        if (!Number.isFinite(minimumRating) || minimumRating < 0 || minimumRating > 5) {
+          throw new HttpError(400, "VALIDATION_ERROR", "minimumRating must be between 0 and 5.");
+        }
+        if (!Number.isSafeInteger(minimumReviewCount) || minimumReviewCount < 0 || minimumReviewCount > 10_000_000) {
+          throw new HttpError(400, "VALIDATION_ERROR", "minimumReviewCount must be an integer between 0 and 10000000.");
+        }
+        const search: PlacesSearchRequest = {
+          location,
+          businessType: category,
+          searchQuery: vertical.searchQuery,
+          verticalId: vertical.id,
+          radiusMetres,
+          websitePresence,
+          minimumRating,
+          minimumReviewCount,
+        };
         const result = await runtime.providers.places.search(search);
         await runtime.store.upsertBusinesses(result.businesses);
         const campaign = (await runtime.store.listCampaigns())[0];
@@ -652,7 +935,7 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
         sendJson(response, 200, {
           ok: true,
           data: businesses,
-          meta: { provider: runtime.providers.places.name, mode: result.mode, attribution: result.attribution },
+          meta: { provider: runtime.providers.places.name, mode: result.mode, attribution: result.attribution, vertical: vertical.id, template: vertical.template },
         });
         return;
       }
@@ -682,16 +965,20 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
         return;
       }
 
-      if (request.method === "POST" && (pathname === "/api/pipeline/start" || pathname === "/api/demo/run")) {
+      if (request.method === "POST" && pathname === "/api/pipeline/start") {
         const body = await readJson<{ businessId?: string; campaignId?: string; idempotencyKey?: string }>(request);
         const business = await runtime.store.getBusiness(body.businessId ?? "business-spiceroute");
         const campaign = await runtime.store.getCampaign(body.campaignId ?? "campaign-stage-1-demo");
         if (!business) throw new HttpError(404, "BUSINESS_NOT_FOUND", "Business was not found.");
         if (!campaign) throw new HttpError(404, "CAMPAIGN_NOT_FOUND", "Campaign was not found.");
         if (campaign.status !== "RUNNING") throw new HttpError(409, "CAMPAIGN_NOT_RUNNING", "Campaign must be running.");
-        const idempotencyKey = requireString(request.headers["idempotency-key"] ?? body.idempotencyKey, "idempotencyKey");
+        const idempotencyKey = requireBoundedString(
+          request.headers["idempotency-key"] ?? body.idempotencyKey,
+          "idempotencyKey",
+          128,
+        );
         const aggregate = await runtime.orchestrator.start({ business, campaign, idempotencyKey });
-        queuePipelineRun(aggregate.lead.id);
+        await queuePipelineRun(aggregate.lead.id);
         sendJson(response, 202, { ok: true, data: publicAggregate(aggregate), meta: { accepted: true, traceId: aggregate.lead.projectId } });
         return;
       }
@@ -700,7 +987,7 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
       if (request.method === "POST" && startLeadId) {
         const aggregate = await runtime.store.findByLeadId(startLeadId) ?? await runtime.store.findByProjectId(startLeadId);
         if (!aggregate) throw new HttpError(404, "LEAD_NOT_FOUND", "Lead was not found.");
-        queuePipelineRun(aggregate.lead.id);
+        await queuePipelineRun(aggregate.lead.id);
         sendJson(response, 202, { ok: true, data: publicAggregate(aggregate), meta: { accepted: true } });
         return;
       }
@@ -710,7 +997,7 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
         const body = await readJson<{ idempotencyKey?: string }>(request);
         const idempotencyKey = requireString(request.headers["idempotency-key"] ?? body.idempotencyKey, "idempotencyKey");
         const aggregate = await runtime.orchestrator.retry(retryLeadId, idempotencyKey, false);
-        queuePipelineRun(aggregate.lead.id, "pipeline.retry.failed");
+        await queuePipelineRun(aggregate.lead.id, "pipeline.retry.failed");
         sendJson(response, 202, { ok: true, data: publicAggregate(aggregate), meta: { accepted: true } });
         return;
       }
@@ -757,9 +1044,29 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
             campaign: aggregate.campaign,
           },
         });
+        const salesDetail = await runtime.salesRepository.getDetail(aggregate.business.id);
+        const lastContact = salesDetail?.contacts.find((item) => item.id === salesDetail.memory?.lastContactId);
+        const verified = Boolean(lastContact?.verified && lastContact.isDecisionMaker);
+        const dynamicVariables = buildElevenLabsDynamicVariables({
+          projectId: aggregate.lead.projectId,
+          lead: aggregate.lead,
+          business: aggregate.business,
+          campaign: aggregate.campaign,
+        }, {
+          identityVerified: verified,
+          contactName: lastContact?.name,
+          contactRole: lastContact?.roles.join(", "),
+          preferredLanguage: lastContact?.preferredLanguage,
+          previousSummary: salesDetail?.memory?.summary,
+          previousObjections: salesDetail?.memory?.objections,
+          dealStage: salesDetail?.business.salesState,
+          lastInteraction: salesDetail?.calls[0]?.summary,
+          nextAction: salesDetail?.memory?.nextAction,
+          websiteStatus: aggregate.business.website ? "PRESENT" : "MISSING",
+        });
         sendJson(response, issued.replayed ? 200 : 201, {
           ok: true,
-          data: issued.grant,
+          data: { ...issued.grant, dynamicVariables },
           meta: { replayed: issued.replayed },
         });
         return;
@@ -845,7 +1152,7 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
           providerConversationId,
           false,
         );
-        queuePipelineRun(completed.lead.id, "pipeline.conversation-continuation.failed");
+        await queuePipelineRun(completed.lead.id, "pipeline.conversation-continuation.failed");
         sendJson(response, 202, {
           ok: true,
           data: publicAggregate(completed),
@@ -880,7 +1187,7 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
           providerConversationId,
           false,
         );
-        queuePipelineRun(completed.lead.id, "pipeline.conversation-continuation.failed");
+        await queuePipelineRun(completed.lead.id, "pipeline.conversation-continuation.failed");
         sendJson(response, 202, { ok: true, data: publicAggregate(completed), meta: { accepted: true } });
         return;
       }
@@ -892,12 +1199,24 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
       }
 
       if (request.method === "GET" && pathname === "/api/events") {
-        const limit = Math.min(500, Math.max(1, Number(searchParams.get("limit") ?? 100)));
-        sendJson(response, 200, { ok: true, data: await runtime.store.listEvents(limit) });
+        const limit = Number(searchParams.get("limit") ?? 100);
+        if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) {
+          throw new HttpError(400, "VALIDATION_ERROR", "limit must be an integer between 1 and 500.");
+        }
+        const cursor = searchParams.get("after");
+        if (cursor && !runtime.controlTower) throw new HttpError(503, "DATABASE_REQUIRED", "Durable event cursor requires PostgreSQL.");
+        let events;
+        try {
+          events = cursor ? await runtime.controlTower!.eventsAfter(cursor, limit) : await runtime.store.listEvents(limit);
+        } catch (error) {
+          if (error instanceof TypeError) throw new HttpError(400, "INVALID_CURSOR", error.message);
+          throw error;
+        }
+        sendJson(response, 200, { ok: true, data: events });
         return;
       }
 
-      if (request.method === "GET" && (pathname === "/api/events/stream" || pathname === "/api/stream")) {
+      if (request.method === "GET" && pathname === "/api/events/stream") {
         response.writeHead(200, {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache, no-transform",
@@ -905,6 +1224,42 @@ export function createRouter(runtime: ApiRuntime, options: RouterOptions = {}) {
           "X-Accel-Buffering": "no",
         });
         response.write(`event: connected\ndata: ${JSON.stringify({ mode: "live", at: new Date().toISOString() })}\n\n`);
+        if (runtime.controlTower) {
+          let cursor = typeof request.headers["last-event-id"] === "string" ? request.headers["last-event-id"] : null;
+          let polling = false;
+          let closed = false;
+          const sendEvent = (item: { id: string }) => {
+            response.write(`id: ${item.id}\nevent: agent-event\ndata: ${JSON.stringify(item)}\n\n`);
+            cursor = item.id;
+          };
+          const poll = async () => {
+            if (polling || closed) return;
+            polling = true;
+            try {
+              if (!cursor) {
+                const recent = await runtime.controlTower!.recentEvents(100);
+                for (const item of recent) sendEvent(item);
+              }
+              if (cursor) {
+                for (let page = 0; page < 5 && !closed; page += 1) {
+                  const batch = await runtime.controlTower!.eventsAfter(cursor, 200);
+                  for (const item of batch) sendEvent(item);
+                  if (batch.length < 200) break;
+                }
+              }
+            } catch (error) {
+              response.write(`event: stream-error\ndata: ${JSON.stringify({ message: error instanceof TypeError ? "Unknown event cursor; reconnect without it." : "Event store unavailable." })}\n\n`);
+              if (error instanceof TypeError) cursor = null;
+            } finally { polling = false; }
+          };
+          void poll();
+          const interval = setInterval(() => { void poll(); }, 2_000);
+          const heartbeat = setInterval(() => {
+            if (!closed) response.write(`event: heartbeat\ndata: ${JSON.stringify({ at: new Date().toISOString() })}\n\n`);
+          }, 20_000);
+          request.on("close", () => { closed = true; clearInterval(interval); clearInterval(heartbeat); });
+          return;
+        }
         const unsubscribe = runtime.events.subscribe((event) => {
           response.write(`id: ${event.id}\nevent: agent-event\ndata: ${JSON.stringify(event)}\n\n`);
         });

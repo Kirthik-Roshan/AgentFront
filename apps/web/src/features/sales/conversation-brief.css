@@ -1,0 +1,35 @@
+.conversation-brief {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-top: 1px solid rgba(184, 243, 90, .25);
+  background: linear-gradient(150deg, rgba(184, 243, 90, .075), transparent 55%), var(--panel);
+}
+.conversation-brief__heading { display: flex; align-items: flex-start; gap: 10px; }
+.conversation-brief__heading > svg { flex: none; color: var(--accent); }
+.conversation-brief__heading strong { display: block; font-size: 15px; }
+.conversation-brief__heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.conversation-brief__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.conversation-brief__fields label { display: grid; gap: 5px; color: var(--text-soft); font-size: 12px; font-weight: 600; }
+.conversation-brief__fields input, .conversation-brief__fields textarea {
+  width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid var(--line); border-radius: 8px;
+  color: var(--text); background: var(--panel-2); font: inherit; font-size: 13px; line-height: 1.4;
+}
+.conversation-brief__fields input:focus-visible, .conversation-brief__fields textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.conversation-brief__fields textarea { resize: vertical; }
+.conversation-brief__wide { grid-column: 1 / -1; }
+.conversation-brief__features { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; border: 0; }
+.conversation-brief__features legend { width: 100%; margin-bottom: 7px; color: var(--text-soft); font-size: 12px; font-weight: 600; }
+.conversation-brief__features label, .conversation-brief__confirmation { display: inline-flex; align-items: center; gap: 7px; color: var(--text-soft); font-size: 12px; line-height: 1.45; }
+.conversation-brief__features input, .conversation-brief__confirmation input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.conversation-brief__confirmation { align-items: flex-start; }
+.conversation-brief__confirmation input { flex: none; margin-top: 1px; }
+.conversation-brief__footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.conversation-brief__footer small { max-width: 430px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.conversation-brief__footer .button { flex: none; }
+@media (max-width: 640px) {
+  .conversation-brief { padding: 16px; }
+  .conversation-brief__fields { grid-template-columns: 1fr; }
+  .conversation-brief__footer { align-items: stretch; flex-direction: column; }
+  .conversation-brief__footer .button { width: 100%; }
+}

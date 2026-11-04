@@ -68,6 +68,77 @@ async function request(
 }
 
 describe("API access guard", () => {
+  it("reports the environment emergency stop in local preview without requiring a database", async () => {
+    const router = createTestRouter({ GLOBAL_EMERGENCY_STOP: "true" });
+    const control = await request(router, "/api/control/emergency-stop");
+    expect(control.body).toMatchObject({ data: { stopped: true } });
+    const dashboard = await request(router, "/api/dashboard");
+    expect(dashboard.body).toMatchObject({ data: { emergencyStopped: true } });
+  });
+
+  it("blocks a founder-triggered sales call while the global emergency stop is active", async () => {
+    const router = createTestRouter({ GLOBAL_EMERGENCY_STOP: "true" });
+    const base = "/api/sales/businesses/business-spiceroute";
+    const queued = await request(router, `${base}/queue`, {
+      method: "POST",
+      headers: { "idempotency-key": "emergency-stop-queue" },
+      body: { campaignId: "campaign-stage-1-demo" },
+    });
+    expect(queued.status).toBe(202);
+
+    const call = await request(router, `${base}/call`, {
+      method: "POST",
+      headers: { "idempotency-key": "emergency-stop-call" },
+      body: { campaignId: "campaign-stage-1-demo", allowDemoOutsideWindow: true },
+    });
+    expect(call.status).toBe(409);
+    expect(call.body).toMatchObject({ error: { code: "EMERGENCY_STOPPED" } });
+  });
+
+  it("keeps payment state honest when durable Dodo test mode is not configured", async () => {
+    const router = createTestRouter();
+    const status = await request(router, "/api/demo/spiceroute/payment");
+    expect(status.status).toBe(200);
+    expect(status.body).toMatchObject({
+      data: { mode: "TEST", status: "NOT_STARTED", configured: false, paymentId: null },
+    });
+
+    const checkout = await request(router, "/api/demo/spiceroute/checkout", {
+      method: "POST",
+      headers: { "idempotency-key": "spiceroute_test_1" },
+      body: { email: "owner@example.com" },
+    });
+    expect(checkout.status).toBe(503);
+    expect(checkout.body).toMatchObject({ error: { code: "PAYMENTS_UNAVAILABLE" } });
+  });
+
+  it("allows the Dodo webhook boundary through founder auth but still requires provider verification", async () => {
+    const router = createTestRouter({ AGENTFRONT_API_TOKEN: "unit-test-secret" });
+    const webhook = await request(router, "/api/webhooks/dodo-test", {
+      method: "POST",
+      body: { type: "payment.succeeded" },
+    });
+    expect(webhook.status).toBe(503);
+    expect(webhook.body).toMatchObject({ error: { code: "PAYMENTS_UNAVAILABLE" } });
+  });
+
+  it("reports worker heartbeat separately from API and job storage health", async () => {
+    const environment = { DEMO_MODE: "true", WEB_ORIGIN: "http://localhost:3000" };
+    const runtime = createRuntime(environment);
+    const router = createRouter(runtime, { environment, bindHost: "127.0.0.1" });
+    const absent = await request(router, "/api/integrations/health");
+    expect(absent.body).toMatchObject({ data: { integrations: expect.arrayContaining([
+      expect.objectContaining({ integration: "scheduler", status: "NOT_CONFIGURED" }),
+    ]) } });
+    await runtime.salesRepository.recordWorkerHeartbeat("unit-worker", new Date().toISOString());
+    const refreshed = createRouter(runtime, { environment, bindHost: "127.0.0.1" });
+    const healthy = await request(refreshed, "/api/integrations/health");
+    expect(healthy.body).toMatchObject({ data: { integrations: expect.arrayContaining([
+      expect.objectContaining({ integration: "scheduler", status: "CONNECTED" }),
+      expect.objectContaining({ integration: "jobQueue", status: "DEMO" }),
+    ]) } });
+    await runtime.close();
+  });
   it("keeps cheap liveness public and protects detailed health and commands", async () => {
     const router = createTestRouter({ AGENTFRONT_API_TOKEN: "unit-test-secret" });
 
@@ -215,6 +286,57 @@ describe("API command validation", () => {
     const valid = await request(router, "/api/campaigns/campaign-stage-1-demo/pause", { method: "POST" });
     expect(valid.status).toBe(200);
     expect(valid.body).toMatchObject({ data: { status: "PAUSED" } });
+  });
+
+  it("removes obsolete compatibility endpoints", async () => {
+    const router = createTestRouter();
+
+    expect((await request(router, "/api/businesses")).status).toBe(404);
+    expect((await request(router, "/api/demo/run", { method: "POST", body: {} })).status).toBe(404);
+    expect((await request(router, "/api/stream")).status).toBe(404);
+  });
+
+  it("rejects malformed discovery and event query parameters", async () => {
+    const router = createTestRouter();
+    const invalidQueries = [
+      "/api/discover?radiusMetres=100.5",
+      "/api/discover?websitePresence=UNKNOWN",
+      "/api/discover?minimumRating=6",
+      "/api/discover?minimumReviewCount=-1",
+      "/api/discover?location=" + "x".repeat(201),
+      "/api/events?limit=NaN",
+      "/api/events?limit=501",
+    ];
+
+    for (const pathname of invalidQueries) {
+      const response = await request(router, pathname);
+      expect(response.status, pathname).toBe(400);
+      expect(response.body, pathname).toMatchObject({ error: { code: "VALIDATION_ERROR" } });
+    }
+  });
+
+  it("bounds pipeline idempotency keys before starting work", async () => {
+    const router = createTestRouter();
+    const response = await request(router, "/api/pipeline/start", {
+      method: "POST",
+      headers: { "idempotency-key": "x".repeat(129) },
+      body: {},
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ error: { code: "VALIDATION_ERROR" } });
+  });
+
+  it("fails startup for weak production secrets and non-origin WEB_ORIGIN values", () => {
+    expect(() => createTestRouter({ NODE_ENV: "production", AGENTFRONT_API_TOKEN: "short" })).toThrow(
+      /AGENTFRONT_API_TOKEN/,
+    );
+    expect(() => createTestRouter({
+      NODE_ENV: "production",
+      AGENTFRONT_API_TOKEN: "a".repeat(32),
+      AGENTFRONT_SESSION_SECRET: "short",
+    })).toThrow(/AGENTFRONT_SESSION_SECRET/);
+    expect(() => createTestRouter({ WEB_ORIGIN: "http://localhost:3000/path" })).toThrow(/WEB_ORIGIN/);
   });
 
   it("rejects unallowlisted conversation outcome fields before orchestration", async () => {

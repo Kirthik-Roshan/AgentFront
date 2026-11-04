@@ -4,6 +4,7 @@ import {
   createProjectSpecification,
   getNegotiationOffer,
   satisfiesQualificationPolicy,
+  assertValidProjectSpecification,
 } from "@agentfront/scoring";
 import type {
   AgentEvent,
@@ -14,6 +15,9 @@ import type {
   LeadAggregate,
   PipelineState,
   ProviderSet,
+  ProjectFeature,
+  ProjectSpecification,
+  SalesBusinessDetail,
 } from "@agentfront/types";
 import { AgentEventBus } from "./events";
 import type { WorkflowRepository } from "./repository";
@@ -24,6 +28,7 @@ export interface OrchestratorOptions {
   templateRoot: string;
   outputRoot: string;
   clock?: () => Date;
+  shouldPause?: () => Promise<boolean>;
 }
 
 export interface StartPipelineInput {
@@ -60,6 +65,116 @@ export class AgentFrontOrchestrator {
     } finally {
       this.#inFlightStarts.delete(operationKey);
     }
+  }
+
+  /**
+   * Bridge the durable sales ledger into the existing developer/QA/deployment
+   * pipeline. This does not replay a fictional CRM or conversation journey.
+   */
+  async handoffSalesSpecification(detail: SalesBusinessDetail, campaignId: string): Promise<LeadAggregate> {
+    const approved = detail.projectSpec;
+    if (!approved || detail.business.salesState !== "SPEC_GENERATED") {
+      throw new Error("A won deal and approved sales project specification are required for delivery.");
+    }
+    const salesSpec = approved.specification;
+    if (salesSpec.businessId !== detail.business.id || approved.businessId !== detail.business.id) {
+      throw new Error("Sales specification is not bound to this business.");
+    }
+    const contact = detail.contacts.find((item) => item.id === approved.contactId);
+    if (!contact || !contact.isDecisionMaker || !contact.verified || !contact.normalizedPhone) {
+      throw new Error("Delivery requires a verified decision-maker contact with a phone number.");
+    }
+    const original = await this.repository.findByBusinessAndCampaign(detail.business.id, campaignId);
+    if (!original) throw new Error("A qualified pipeline lead must exist before sales delivery handoff.");
+    const originalHandoff = original.events.find((item) => item.eventType === "sales.specification.handed_off");
+    if (originalHandoff?.metadata.salesSpecId === approved.id) return original;
+    // The existing Stage-1 demo may already have built this business using a
+    // different, older scope. Preserve that immutable deployment and give the
+    // newly accepted sales specification its own lead/campaign identity.
+    let aggregate = original;
+    if (original.lead.status !== "QUALIFIED" || originalHandoff) {
+      const deliveryCampaign = {
+        ...original.campaign,
+        id: `sales-spec-${approved.id}`,
+        name: `${original.campaign.name} · Sales delivery`,
+      };
+      const existing = await this.repository.findByBusinessAndCampaign(detail.business.id, deliveryCampaign.id);
+      aggregate = existing ?? await this.start({
+        business: detail.business, campaign: deliveryCampaign,
+        idempotencyKey: `sales-spec:${approved.id}:enroll`,
+      });
+    }
+    const existingHandoff = aggregate.events.find((item) => item.eventType === "sales.specification.handed_off");
+    if (existingHandoff) {
+      if (existingHandoff.metadata.salesSpecId !== approved.id) throw new Error("This lead is bound to a different sales specification.");
+      return aggregate;
+    }
+    if (aggregate.lead.status !== "QUALIFIED") {
+      throw new Error(`Cannot replace an existing ${aggregate.lead.status} delivery workflow with a new sales specification.`);
+    }
+    const terms = salesSpec.commercial;
+    if (!Number.isSafeInteger(terms.quotedPrice) || !Number.isSafeInteger(terms.agreedPrice) ||
+      !terms.quotedPrice || !terms.agreedPrice || terms.agreedPrice > terms.quotedPrice) {
+      throw new Error("Accepted commercial terms are incomplete or invalid.");
+    }
+    const supported = new Set<ProjectFeature>([
+      "menu", "gallery", "whatsappOrdering", "googleMaps", "reservations", "booking",
+      "testimonials", "catalog", "emergencyContact",
+    ]);
+    for (const [feature, enabled] of Object.entries(salesSpec.requirements.features)) {
+      if (enabled && !supported.has(feature as ProjectFeature)) {
+        throw new Error(`The delivery template does not support purchased feature ${feature}.`);
+      }
+    }
+    const features = Object.fromEntries(Object.entries(salesSpec.requirements.features)
+      .filter(([feature]) => supported.has(feature as ProjectFeature))) as Partial<Record<ProjectFeature, boolean>>;
+    const style = typeof salesSpec.branding.style === "string" && salesSpec.branding.style.trim()
+      ? salesSpec.branding.style.trim() : "modern";
+    const primaryColour = typeof salesSpec.branding.primaryColour === "string" && salesSpec.branding.primaryColour.trim()
+      ? salesSpec.branding.primaryColour.trim() : null;
+    const vertical = detail.business.socialLinks.agentfrontVertical?.trim() || detail.business.category;
+    const nicheBrief = `Business vertical: ${vertical}. Adapt the selected ${detail.business.category} template to this niche without rebuilding its architecture.`;
+    const specification: ProjectSpecification = assertValidProjectSpecification({
+      schemaVersion: 1, projectId: aggregate.lead.projectId,
+      business: { name: detail.business.name, type: detail.business.category,
+        location: `${detail.business.address}, ${detail.business.city}`, phone: salesSpec.business.phone },
+      commercial: { quotedPrice: terms.quotedPrice, finalPrice: terms.agreedPrice, currency: terms.currency },
+      pages: [...salesSpec.requirements.pages], features,
+      clientBrief: [nicheBrief, ...salesSpec.requirements.notes.map((item) => item.trim()).filter(Boolean)].slice(0, 50),
+      design: { style, ...(primaryColour ? { primaryColour } : {}), mobileFirst: true },
+    });
+    const now = this.#now();
+    aggregate.requirements = {
+      id: `requirements-${aggregate.lead.projectId}`, leadId: aggregate.lead.id,
+      businessType: detail.business.category, pages: [...salesSpec.requirements.pages], features,
+      branding: { style, primaryColour, mobileFirst: true },
+      contentRequirements: [nicheBrief, ...salesSpec.requirements.notes],
+      budget: { minimum: terms.agreedPrice, maximum: terms.quotedPrice, currency: terms.currency },
+      notes: [...salesSpec.requirements.notes], approvedAt: approved.createdAt,
+    };
+    aggregate.deal = {
+      id: `deal-${aggregate.lead.projectId}`, leadId: aggregate.lead.id,
+      quotedAmount: terms.quotedPrice, discount: terms.quotedPrice - terms.agreedPrice,
+      finalAmount: terms.agreedPrice, currency: terms.currency,
+      status: "WON", acceptedAt: approved.createdAt, lostReason: null,
+    };
+    aggregate.project = {
+      id: `project-${aggregate.lead.projectId}`, projectId: aggregate.lead.projectId,
+      leadId: aggregate.lead.id, templateType: detail.business.category,
+      specification, status: "SPEC_READY", buildPath: null, buildLog: [],
+      qaStatus: "PENDING", qaResult: null, deploymentId: null, createdAt: now, updatedAt: now,
+    };
+    this.#transition(aggregate, "SPEC_GENERATED", "SPECIFICATION",
+      "Verified sales specification handed off to the existing developer pipeline.",
+      `sales-spec:${approved.id}:handoff`, { salesSpecId: approved.id });
+    this.#emit(aggregate, "SPECIFICATION", "sales.specification.handed_off",
+      "Verified sales deal and requirements handed to the developer pipeline.", "SUCCESS", { salesSpecId: approved.id });
+    aggregate.revenueEvents.push({
+      id: `revenue-${aggregate.lead.projectId}`, dealId: aggregate.deal.id,
+      amount: terms.agreedPrice, currency: terms.currency, type: "BOOKED", createdAt: approved.createdAt,
+    });
+    await this.repository.save(aggregate);
+    return clone(aggregate);
   }
 
   async #enroll(input: StartPipelineInput): Promise<LeadAggregate> {
@@ -283,15 +398,15 @@ export class AgentFrontOrchestrator {
     return clone(aggregate);
   }
 
-  async retry(leadId: string, idempotencyKey: string, continuePipeline = true): Promise<LeadAggregate> {
+  async retry(leadId: string, idempotencyKey: string, continuePipeline = true, actor: "FOUNDER" | "SYSTEM" = "FOUNDER"): Promise<LeadAggregate> {
     const found = await this.repository.findByLeadId(leadId);
     if (!found) throw new Error(`Lead ${leadId} was not found.`);
     const aggregate = clone(found);
     if (!await this.#campaignAllowsProgress(aggregate)) return clone(aggregate);
     if (aggregate.lead.status === "BUILD_FAILED") {
-      this.#transition(aggregate, "BUILD_QUEUED", "FOUNDER", "Manual build retry requested.", idempotencyKey);
+      this.#transition(aggregate, "BUILD_QUEUED", actor, actor === "SYSTEM" ? "Worker retried the failed sales build." : "Manual build retry requested.", idempotencyKey);
     } else if (aggregate.lead.status === "DEPLOY_FAILED") {
-      this.#transition(aggregate, "DEPLOYING", "FOUNDER", "Manual deployment retry requested.", idempotencyKey);
+      this.#transition(aggregate, "DEPLOYING", actor, actor === "SYSTEM" ? "Worker retried the failed sales deployment." : "Manual deployment retry requested.", idempotencyKey);
     } else if (aggregate.lead.status === "FOLLOW_UP") {
       this.#transition(aggregate, "OUTREACH_READY", "FOUNDER", "Follow-up resumed.", idempotencyKey);
     } else {
@@ -312,7 +427,9 @@ export class AgentFrontOrchestrator {
         projectId: key,
         accountId: account.id,
         business: aggregate.business,
-        displayName: `${aggregate.business.name} Owner`,
+        // A public listing number may belong to reception or an employee.
+        // Do not invent an owner identity before the sales flow verifies a role.
+        displayName: `${aggregate.business.name} Public Line`,
       },
       `${key}:crm-contact`,
     );
@@ -721,6 +838,7 @@ export class AgentFrontOrchestrator {
   }
 
   async #campaignAllowsProgress(aggregate: LeadAggregate): Promise<boolean> {
+    if (await this.options.shouldPause?.()) return false;
     const latestStatus = this.repository.getCampaignStatus
       ? await this.repository.getCampaignStatus(aggregate.lead.campaignId)
       : aggregate.campaign.status;

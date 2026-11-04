@@ -1,5 +1,6 @@
 export type ViewKey =
   | 'overview'
+  | 'demo'
   | 'discover'
   | 'leads'
   | 'pipeline'
@@ -7,6 +8,7 @@ export type ViewKey =
   | 'crm'
   | 'campaigns'
   | 'projects'
+  | 'templates'
   | 'deployments'
   | 'agents'
   | 'analytics'
@@ -28,6 +30,12 @@ export type Business = {
   rating: number;
   reviews: number;
   phone: boolean;
+  phoneNumber?: string | null;
+  address?: string;
+  websiteUrl?: string | null;
+  googleMapsUrl?: string | null;
+  photoUrl?: string | null;
+  photoAttribution?: { displayName: string; uri: string | null } | null;
   instagram: boolean;
   website: boolean;
   websiteQuality: 'none' | 'poor' | 'good';
@@ -62,6 +70,11 @@ export type ActivityEvent = {
   leadId: string | null;
   projectId: string | null;
   campaignId: string | null;
+  businessId?: string | null;
+  workflowId?: string | null;
+  correlationId?: string | null;
+  sourceAgent?: string | null;
+  retryCount?: number;
 };
 
 export type TranscriptLine = {

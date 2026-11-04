@@ -6,7 +6,7 @@ import type { AgentEvent, BuildRequest, BuildResult, DeveloperProvider, Integrat
 import { runProcess } from "./process";
 
 const WORKSPACE_OWNER_FILE = ".agentfront-workspace-owner.json";
-const SAFE_TEMPLATE_TYPES = new Set(["restaurant", "salon", "garments", "mechanic"]);
+const SAFE_TEMPLATE_TYPES = new Set(["restaurant", "salon", "garments", "mechanic", "clinic", "education", "realestate", "fitness", "bakery", "legal"]);
 const NO_FOLLOW = constants.O_NOFOLLOW ?? 0;
 
 interface WorkspaceOwnerManifest {
@@ -457,6 +457,406 @@ export class DemoDeveloperProvider implements DeveloperProvider {
       message: "Safe workspace preparation and simulated build logs are active.",
       checkedAt: new Date().toISOString(),
     };
+  }
+}
+
+export interface ClaudeDeveloperProviderOptions {
+  apiKey: string;
+  model?: string;
+  fetch?: typeof fetch;
+}
+
+interface ClaudeToolResponse {
+  content?: Array<{
+    type?: string;
+    name?: string;
+    input?: { configuration_json?: unknown; summary?: unknown };
+  }>;
+  usage?: { input_tokens?: number; output_tokens?: number };
+}
+
+const CLAUDE_CONFIGURATION_TOOL = "write_business_configuration";
+const MAX_CLAUDE_CONFIGURATION_BYTES = 128_000;
+
+async function readWorkspaceConfiguration(target: string): Promise<Record<string, unknown>> {
+  const path = resolve(target, "business.config.json");
+  ensureContainedPath(target, path);
+  const parent = await realpath(dirname(path));
+  if (parent !== target) throw new Error("Business configuration must be stored at the workspace root.");
+  const handle = await open(path, constants.O_RDONLY | NO_FOLLOW);
+  try {
+    await assertSafeWritableFile(handle, "Business configuration");
+    const source = await handle.readFile("utf8");
+    if (Buffer.byteLength(source) > MAX_CLAUDE_CONFIGURATION_BYTES) {
+      throw new Error("Business configuration exceeds the Claude customization limit.");
+    }
+    const parsed = JSON.parse(source) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Business configuration must be a JSON object.");
+    }
+    return parsed as Record<string, unknown>;
+  } finally {
+    await handle.close();
+  }
+}
+
+function assertSafeClaudeConfiguration(value: unknown, depth = 0): void {
+  if (depth > 12) throw new Error("Claude configuration is too deeply nested.");
+  if (value === null || typeof value === "boolean" || typeof value === "number") return;
+  if (typeof value === "string") {
+    if (value.length > 20_000) throw new Error("Claude configuration contains an oversized string.");
+    if (/<\s*script\b|javascript\s*:/i.test(value)) throw new Error("Claude configuration contains executable content.");
+    return;
+  }
+  if (Array.isArray(value)) {
+    if (value.length > 200) throw new Error("Claude configuration contains an oversized array.");
+    value.forEach((item) => assertSafeClaudeConfiguration(item, depth + 1));
+    return;
+  }
+  if (!value || typeof value !== "object") throw new Error("Claude configuration contains an unsupported value.");
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length > 200) throw new Error("Claude configuration contains too many fields.");
+  for (const [key, item] of entries) {
+    if (["__proto__", "prototype", "constructor"].includes(key)) {
+      throw new Error("Claude configuration contains an unsafe field name.");
+    }
+    assertSafeClaudeConfiguration(item, depth + 1);
+  }
+}
+
+function configurationValueType(value: unknown): string {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  return typeof value === "object" ? "object" : typeof value;
+}
+
+function assertClaudeConfigurationShape(
+  baseline: unknown,
+  candidate: unknown,
+  path = "business.config.json",
+): void {
+  const expectedType = configurationValueType(baseline);
+  const actualType = configurationValueType(candidate);
+  if (actualType !== expectedType) {
+    throw new Error(`Claude configuration schema mismatch at ${path}: expected ${expectedType}, received ${actualType}.`);
+  }
+
+  if (Array.isArray(baseline)) {
+    const candidateItems = candidate as unknown[];
+    if (baseline.length === 0) {
+      if (candidateItems.length > 0) {
+        throw new Error(
+          `Claude configuration schema mismatch at ${path}[0]: the baseline has no item schema for this array.`,
+        );
+      }
+      return;
+    }
+    for (const [index, item] of candidateItems.entries()) {
+      const failures: Error[] = [];
+      let matched = false;
+      for (const exemplar of baseline) {
+        try {
+          assertClaudeConfigurationShape(exemplar, item, `${path}[${index}]`);
+          matched = true;
+          break;
+        } catch (error) {
+          failures.push(error instanceof Error ? error : new Error(String(error)));
+        }
+      }
+      if (!matched) throw failures[0] ?? new Error(`Claude configuration schema mismatch at ${path}[${index}].`);
+    }
+    return;
+  }
+
+  if (!baseline || typeof baseline !== "object") return;
+  const baselineRecord = baseline as Record<string, unknown>;
+  const candidateRecord = candidate as Record<string, unknown>;
+  for (const key of Object.keys(baselineRecord)) {
+    if (!Object.hasOwn(candidateRecord, key)) {
+      throw new Error(`Claude configuration schema mismatch at ${path}.${key}: missing required field.`);
+    }
+  }
+  for (const key of Object.keys(candidateRecord)) {
+    if (!Object.hasOwn(baselineRecord, key)) {
+      throw new Error(`Claude configuration schema mismatch at ${path}.${key}: unsupported field.`);
+    }
+    assertClaudeConfigurationShape(baselineRecord[key], candidateRecord[key], `${path}.${key}`);
+  }
+}
+
+function mergeClaudeConfiguration(
+  baseline: Record<string, unknown>,
+  generated: Record<string, unknown>,
+): Record<string, unknown> {
+  assertSafeClaudeConfiguration(generated);
+  assertClaudeConfigurationShape(baseline, generated);
+  // Provider output may shape approved copy and presentation, but deterministic
+  // code remains authoritative for identity, contact routes and paid features.
+  return {
+    ...baseline,
+    ...generated,
+    meta: baseline.meta,
+    business: baseline.business,
+    features: baseline.features,
+  };
+}
+
+function boundedClaudeError(source: string): string {
+  return source
+    .replace(/\bsk-ant-[A-Za-z0-9_-]+/g, "[REDACTED]")
+    .replace(/((?:api[_-]?key|token|secret)\s*[:=]\s*)[^\s,;}]+/gi, "$1[REDACTED]")
+    .slice(0, 1_000);
+}
+
+/**
+ * Claude is deliberately limited to one existing template configuration file.
+ * Repository creation, QA and deployment remain deterministic provider steps.
+ */
+export class ClaudeDeveloperProvider implements DeveloperProvider {
+  readonly name = "Claude Template Customizer";
+  readonly mode = "REAL" as const;
+  readonly #apiKey: string;
+  readonly #model: string;
+  readonly #fetch: typeof fetch;
+
+  constructor(options: ClaudeDeveloperProviderOptions) {
+    this.#apiKey = options.apiKey.trim();
+    this.#model = options.model?.trim() || "claude-sonnet-4-6";
+    this.#fetch = options.fetch ?? fetch;
+    if (!this.#apiKey) throw new Error("ANTHROPIC_API_KEY is required for the Claude developer provider.");
+    if (!/^[A-Za-z0-9._-]{3,100}$/.test(this.#model)) throw new Error("CLAUDE_MODEL is invalid.");
+  }
+
+  async build(request: BuildRequest, onEvent?: (event: AgentEvent) => void): Promise<BuildResult> {
+    const target = await prepareWorkspace(request);
+    // Establish verified identity/contact fields before any model-authored copy.
+    await customizeDemoConfiguration(target, request);
+    const baseline = await readWorkspaceConfiguration(target);
+    onEvent?.(makeEvent(request, 1, "Claude received the approved client brief and existing template configuration"));
+    const response = await this.#fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": this.#apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: this.#model,
+        max_tokens: 8_192,
+        system: [
+          "You customize an existing AgentFront website template; you never build a new application.",
+          "Return the complete business.config.json through the required tool.",
+          "Preserve its schema and top-level keys. Use only facts in project_spec and current_config.",
+          "Do not invent services, prices, testimonials, addresses, offers, URLs, or contact details.",
+          "Keep copy concise, production-ready and appropriate for the requested business style.",
+        ].join(" "),
+        messages: [{
+          role: "user",
+          content: JSON.stringify({ project_spec: request.specification, current_config: baseline }),
+        }],
+        tools: [{
+          name: CLAUDE_CONFIGURATION_TOOL,
+          description: "Write the complete customized business.config.json for the selected existing template.",
+          input_schema: {
+            type: "object",
+            properties: {
+              configuration_json: { type: "string", description: "The complete valid JSON configuration object." },
+              summary: { type: "string", description: "One short sentence describing the bounded customization." },
+            },
+            required: ["configuration_json", "summary"],
+            additionalProperties: false,
+          },
+        }],
+        tool_choice: { type: "tool", name: CLAUDE_CONFIGURATION_TOOL },
+      }),
+      signal: AbortSignal.timeout(90_000),
+    });
+    const body = await response.text();
+    if (!response.ok) throw new Error(`Claude Messages API failed (${response.status}): ${boundedClaudeError(body)}`);
+    let payload: ClaudeToolResponse;
+    try {
+      payload = JSON.parse(body) as ClaudeToolResponse;
+    } catch {
+      throw new Error("Claude Messages API returned invalid JSON.");
+    }
+    const toolUse = payload.content?.find((item) => item.type === "tool_use" && item.name === CLAUDE_CONFIGURATION_TOOL);
+    const configurationSource = toolUse?.input?.configuration_json;
+    if (typeof configurationSource !== "string" || !configurationSource.trim()) {
+      throw new Error("Claude did not return the required template configuration tool result.");
+    }
+    if (Buffer.byteLength(configurationSource) > MAX_CLAUDE_CONFIGURATION_BYTES) {
+      throw new Error("Claude returned an oversized template configuration.");
+    }
+    let generated: unknown;
+    try {
+      generated = JSON.parse(configurationSource) as unknown;
+    } catch {
+      throw new Error("Claude returned a malformed template configuration.");
+    }
+    if (!generated || typeof generated !== "object" || Array.isArray(generated)) {
+      throw new Error("Claude template configuration must be an object.");
+    }
+    const configuration = mergeClaudeConfiguration(baseline, generated as Record<string, unknown>);
+    await safelyWriteWorkspaceFile(target, "business.config.json", `${JSON.stringify(configuration, null, 2)}\n`);
+    onEvent?.(makeEvent(request, 2, "Claude customization applied to the existing template configuration"));
+    const usage = payload.usage;
+    const logs = [
+      `Claude model ${this.#model} customized business.config.json`,
+      `Claude usage: ${usage?.input_tokens ?? "unknown"} input / ${usage?.output_tokens ?? "unknown"} output tokens`,
+      "Verified identity, contact routes and purchased feature flags were preserved deterministically",
+    ];
+    return { buildPath: target, logs, success: true, mode: this.mode };
+  }
+
+  async health(): Promise<IntegrationHealth> {
+    const checkedAt = new Date().toISOString();
+    try {
+      const response = await this.#fetch(
+        `https://api.anthropic.com/v1/models/${encodeURIComponent(this.#model)}`,
+        {
+          method: "GET",
+          headers: {
+            "X-API-Key": this.#apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          signal: AbortSignal.timeout(5_000),
+        },
+      );
+      if (!response.ok) throw new Error("Claude model access check failed.");
+      const body = await response.text();
+      if (Buffer.byteLength(body) > 64_000) throw new Error("Claude model response was oversized.");
+      const model = JSON.parse(body) as unknown;
+      if (!model || typeof model !== "object" || Array.isArray(model) ||
+          (model as Record<string, unknown>).id !== this.#model) {
+        throw new Error("Claude model response was invalid.");
+      }
+      return {
+        integration: "developer",
+        provider: this.name,
+        mode: this.mode,
+        status: "CONNECTED",
+        message: `Claude ${this.#model} is authenticated for bounded existing-template customization.`,
+        checkedAt,
+      };
+    } catch {
+      return {
+        integration: "developer",
+        provider: this.name,
+        mode: this.mode,
+        status: "DEGRADED",
+        message: `Claude ${this.#model} is configured, but its API key/model access could not be verified.`,
+        checkedAt,
+      };
+    }
+  }
+}
+
+
+export interface OpenAIDeveloperProviderOptions {
+  apiKey: string;
+  model?: string;
+  fetch?: typeof fetch;
+}
+
+interface OpenAIResponsesPayload {
+  output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
+  usage?: { input_tokens?: number; output_tokens?: number };
+}
+
+function openAIOutputText(payload: OpenAIResponsesPayload): string {
+  return (payload.output ?? []).flatMap((item) => item.content ?? [])
+    .filter((item) => item.type === "output_text" && typeof item.text === "string")
+    .map((item) => item.text!.trim()).filter(Boolean).join("\n");
+}
+
+/**
+ * OpenAI is restricted to the selected template's configuration JSON. The
+ * deterministic pipeline still owns workspace creation, protected identity
+ * fields, validation, QA and deployment.
+ */
+export class OpenAIDeveloperProvider implements DeveloperProvider {
+  readonly name = "OpenAI Template Customizer";
+  readonly mode = "REAL" as const;
+  readonly #apiKey: string;
+  readonly #model: string;
+  readonly #fetch: typeof fetch;
+
+  constructor(options: OpenAIDeveloperProviderOptions) {
+    this.#apiKey = options.apiKey.trim();
+    this.#model = options.model?.trim() || "gpt-6-astra";
+    this.#fetch = options.fetch ?? fetch;
+    if (!this.#apiKey) throw new Error("OPENAI_API_KEY is required for the OpenAI developer provider.");
+    if (!/^[A-Za-z0-9._-]{3,100}$/.test(this.#model)) throw new Error("OPENAI_MODEL is invalid.");
+  }
+
+  async build(request: BuildRequest, onEvent?: (event: AgentEvent) => void): Promise<BuildResult> {
+    const target = await prepareWorkspace(request);
+    await customizeDemoConfiguration(target, request);
+    const baseline = await readWorkspaceConfiguration(target);
+    onEvent?.(makeEvent(request, 1, "OpenAI received the approved client brief and existing template configuration"));
+    const response = await this.#fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.#apiKey}` },
+      body: JSON.stringify({
+        model: this.#model,
+        store: false,
+        max_output_tokens: 8192,
+        instructions: [
+          "Customize only the supplied existing AgentFront website template configuration.",
+          "Return one complete JSON object and no markdown.",
+          "Preserve every existing key and value type. Use only facts in project_spec and current_config.",
+          "Do not invent services, prices, testimonials, addresses, offers, URLs, or contact details.",
+          "Keep copy concise, production-ready, responsive and appropriate for the requested business style."
+        ].join(" "),
+        input: JSON.stringify({ project_spec: request.specification, current_config: baseline }),
+        text: { format: { type: "json_object" } },
+      }),
+      signal: AbortSignal.timeout(90_000),
+    });
+    const body = await response.text();
+    if (!response.ok) throw new Error(`OpenAI Responses API failed (${response.status}): ${boundedClaudeError(body)}`);
+    let payload: OpenAIResponsesPayload;
+    try { payload = JSON.parse(body); } catch { throw new Error("OpenAI Responses API returned invalid JSON."); }
+    const configurationSource = openAIOutputText(payload);
+    if (!configurationSource) throw new Error("OpenAI did not return the required template configuration.");
+    if (Buffer.byteLength(configurationSource) > MAX_CLAUDE_CONFIGURATION_BYTES) {
+      throw new Error("OpenAI returned an oversized template configuration.");
+    }
+    let generated: unknown;
+    try { generated = JSON.parse(configurationSource); } catch { throw new Error("OpenAI returned malformed template configuration JSON."); }
+    if (!generated || typeof generated !== "object" || Array.isArray(generated)) {
+      throw new Error("OpenAI template configuration must be an object.");
+    }
+    const configuration = mergeClaudeConfiguration(baseline, generated as Record<string, unknown>);
+    await safelyWriteWorkspaceFile(target, "business.config.json", `${JSON.stringify(configuration, null, 2)}\n`);
+    onEvent?.(makeEvent(request, 2, "OpenAI customization applied to the existing template configuration"));
+    const logs = [
+      `OpenAI model ${this.#model} customized business.config.json`,
+      `OpenAI usage: ${payload.usage?.input_tokens ?? "unknown"} input / ${payload.usage?.output_tokens ?? "unknown"} output tokens`,
+      "Verified identity, contact routes and purchased feature flags were preserved deterministically",
+    ];
+    return { buildPath: target, logs, success: true, mode: this.mode };
+  }
+
+  async health(): Promise<IntegrationHealth> {
+    const checkedAt = new Date().toISOString();
+    try {
+      const response = await this.#fetch(`https://api.openai.com/v1/models/${encodeURIComponent(this.#model)}`, {
+        headers: { Authorization: `Bearer ${this.#apiKey}` },
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (!response.ok) throw new Error("OpenAI model access check failed.");
+      const body = await response.text();
+      if (Buffer.byteLength(body) > 64_000) throw new Error("OpenAI model response was oversized.");
+      const model = JSON.parse(body) as unknown;
+      if (!model || typeof model !== "object" || Array.isArray(model) ||
+          (model as Record<string, unknown>).id !== this.#model) throw new Error("OpenAI model response was invalid.");
+      return { integration: "developer", provider: this.name, mode: this.mode, status: "CONNECTED",
+        message: `OpenAI ${this.#model} is authenticated for bounded existing-template customization.`, checkedAt };
+    } catch {
+      return { integration: "developer", provider: this.name, mode: this.mode, status: "DEGRADED",
+        message: `OpenAI ${this.#model} is configured, but API key/model access could not be verified.`, checkedAt };
+    }
   }
 }
 

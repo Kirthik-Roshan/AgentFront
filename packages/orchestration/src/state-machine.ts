@@ -2,7 +2,9 @@ import type { AgentType, PipelineState, PipelineTransition } from "@agentfront/t
 
 export const PIPELINE_TRANSITIONS: Readonly<Record<PipelineState, readonly PipelineState[]>> = {
   DISCOVERED: ["QUALIFIED", "REJECTED"],
-  QUALIFIED: ["CRM_CREATED"],
+  // A separately verified sales conversation may hand a won, approved spec
+  // directly to delivery without inventing legacy CRM/voice transitions.
+  QUALIFIED: ["CRM_CREATED", "SPEC_GENERATED"],
   CRM_CREATED: ["OUTREACH_READY"],
   OUTREACH_READY: ["CONVERSATION_ACTIVE", "NOT_INTERESTED", "FOLLOW_UP"],
   CONVERSATION_ACTIVE: ["REQUIREMENTS_COLLECTED", "NOT_INTERESTED", "FOLLOW_UP"],

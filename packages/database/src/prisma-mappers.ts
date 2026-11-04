@@ -30,6 +30,8 @@ type DecimalValue = number | string | { toString(): string };
 export interface PersistedBusinessRecord {
   id: string;
   externalPlaceId: string | null;
+  freshworksAccountId?: string | null;
+  freshworksDealId?: string | null;
   name: string;
   category: string;
   address: string;
@@ -168,6 +170,12 @@ export interface PersistedAgentEventRecord {
   status: string;
   durationMs: number | null;
   createdAt: DateValue;
+  businessId?: string | null;
+  workflowId?: string | null;
+  correlationId?: string | null;
+  sourceAgent?: string | null;
+  retryCount?: number;
+  payload?: unknown | null;
 }
 
 export interface PersistedLeadAggregateRecord {
@@ -203,6 +211,8 @@ export function mapPersistedBusiness(row: PersistedBusinessRecord): Business {
   return {
     id: row.id,
     externalPlaceId: row.externalPlaceId,
+    freshworksAccountId: row.freshworksAccountId ?? null,
+    freshworksDealId: row.freshworksDealId ?? null,
     name: row.name,
     category: row.category as BusinessType,
     address: row.address,
@@ -255,6 +265,12 @@ export function mapPersistedAgentEvent(row: PersistedAgentEventRecord): AgentEve
     status: row.status as AgentEvent["status"],
     durationMs: row.durationMs,
     createdAt: iso(row.createdAt),
+    ...(row.businessId !== undefined ? { businessId: row.businessId } : {}),
+    ...(row.workflowId !== undefined ? { workflowId: row.workflowId } : {}),
+    ...(row.correlationId !== undefined ? { correlationId: row.correlationId } : {}),
+    ...(row.sourceAgent !== undefined ? { sourceAgent: row.sourceAgent as AgentEvent["sourceAgent"] } : {}),
+    ...(row.retryCount !== undefined ? { retryCount: row.retryCount } : {}),
+    ...(row.payload !== undefined ? { payload: row.payload === null ? null : json<Record<string, unknown>>(row.payload) } : {}),
   };
 }
 

@@ -282,6 +282,10 @@ export class PrismaAgentFrontStore implements WorkflowRepository {
       // status must not be overwritten by a workflow snapshot that was loaded before the stop.
       await ensureBusiness(transaction, aggregate.business);
       await ensureCampaign(transaction, aggregate.campaign);
+      const workflow = await transaction.workflow.upsert({ where: { businessId: aggregate.business.id }, create: {
+        id: `workflow-${aggregate.business.id}`, businessId: aggregate.business.id,
+        correlationId: aggregate.business.id,
+      }, update: {} });
 
       const storedLead = await transaction.lead.findUnique({ where: { id: aggregate.lead.id } });
       if (storedLead && (
@@ -331,7 +335,7 @@ export class PrismaAgentFrontStore implements WorkflowRepository {
       await this.#saveDeal(transaction, aggregate);
       await this.#saveProject(transaction, aggregate);
       await this.#appendTransitions(transaction, aggregate.transitions);
-      await this.#appendEvents(transaction, aggregate.events);
+      await this.#appendEvents(transaction, aggregate.events, aggregate.business.id, workflow.id);
       await this.#appendRevenue(transaction, aggregate.revenueEvents);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
@@ -354,6 +358,32 @@ export class PrismaAgentFrontStore implements WorkflowRepository {
   async upsertBusinesses(businesses: readonly Business[]): Promise<void> {
     await this.#client.$transaction(async (transaction) => {
       for (const business of businesses) await upsertBusiness(transaction, business);
+    });
+  }
+
+  /** Removes obsolete fake seed records while preserving every real provider record. */
+  async pruneDemoBusinessesExcept(allowedBusinessId: string): Promise<number> {
+    return this.#client.$transaction(async (transaction) => {
+      const targets = await transaction.business.findMany({
+        where: { source: "DEMO", id: { not: allowedBusinessId } },
+        select: { id: true },
+      });
+      const ids = targets.map(({ id }) => id);
+      if (!ids.length) return 0;
+      const workflows = await transaction.workflow.findMany({
+        where: { businessId: { in: ids } }, select: { id: true },
+      });
+      const workflowIds = workflows.map(({ id }) => id);
+      if (workflowIds.length) {
+        await transaction.agentRun.deleteMany({ where: { workflowId: { in: workflowIds } } });
+        await transaction.agentEvent.updateMany({ where: { workflowId: { in: workflowIds } }, data: { workflowId: null } });
+        await transaction.salesJob.updateMany({ where: { workflowId: { in: workflowIds } }, data: { workflowId: null } });
+        await transaction.workflow.deleteMany({ where: { id: { in: workflowIds } } });
+      }
+      await transaction.agentEvent.deleteMany({ where: { businessId: { in: ids } } });
+      await transaction.lead.deleteMany({ where: { businessId: { in: ids } } });
+      const deleted = await transaction.business.deleteMany({ where: { id: { in: ids } } });
+      return deleted.count;
     });
   }
 
@@ -615,12 +645,21 @@ export class PrismaAgentFrontStore implements WorkflowRepository {
     }
   }
 
-  async #appendEvents(transaction: TransactionClient, events: readonly AgentEvent[]): Promise<void> {
+  async #appendEvents(transaction: TransactionClient, events: readonly AgentEvent[], businessId: string, workflowId: string): Promise<void> {
     for (const event of events) {
       const persisted = await transaction.agentEvent.upsert({
         where: { id: event.id },
         create: {
           id: event.id,
+          businessId,
+          workflowId,
+          correlationId: event.projectId ?? businessId,
+          sourceAgent: event.agentType === "DISCOVERY" || event.agentType === "QUALIFICATION" ? "DISCOVER"
+            : ["CRM", "SALES", "NEGOTIATION"].includes(event.agentType) ? "SALES"
+            : ["SPECIFICATION", "DEVELOPER", "QA", "DEPLOYMENT"].includes(event.agentType) ? "DEVELOPER"
+            : "DELIVERY",
+          retryCount: event.retryCount ?? 0,
+          payload: json(event.metadata),
           leadId: event.leadId,
           projectId: event.projectId,
           campaignId: event.campaignId,
@@ -638,6 +677,8 @@ export class PrismaAgentFrontStore implements WorkflowRepository {
         ...event,
         ...persisted,
         agentType: persisted.agentType as AgentEvent["agentType"],
+        sourceAgent: persisted.sourceAgent as AgentEvent["sourceAgent"],
+        payload: persisted.payload as AgentEvent["payload"],
         createdAt: persisted.createdAt.toISOString(),
         metadata: persisted.metadata as Record<string, unknown>,
       };

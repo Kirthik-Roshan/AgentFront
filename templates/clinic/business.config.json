@@ -1,0 +1,130 @@
+{
+  "meta": {
+    "template": "clinic-v1",
+    "preview": true,
+    "previewLabel": "Clinic template preview — verified content only"
+  },
+  "theme": {
+    "ink": "#123532",
+    "paper": "#eef7f3",
+    "accent": "#168f7b",
+    "sage": "#b7dfcf"
+  },
+  "business": {
+    "name": "Asterwell Clinic",
+    "descriptor": "Family care · Diagnostics · Wellness",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "bookingLink": "",
+    "mapsLink": ""
+  },
+  "hero": {
+    "eyebrow": "Care without the confusion",
+    "title": "Feel heard. Get clear care.",
+    "description": "A calm patient-first experience for trusted doctors and reassuring follow-up.",
+    "cta": "Book an appointment"
+  },
+  "services": [
+    {
+      "number": "01",
+      "name": "Family medicine",
+      "description": "Everyday consultations and continuity of care."
+    },
+    {
+      "number": "02",
+      "name": "Women health",
+      "description": "Private care through every life stage."
+    },
+    {
+      "number": "03",
+      "name": "Diagnostics",
+      "description": "Coordinated tests with clear follow-up."
+    },
+    {
+      "number": "04",
+      "name": "Preventive care",
+      "description": "Screening shaped around real life."
+    }
+  ],
+  "pricing": {
+    "note": "Publish only verified consultation details.",
+    "items": [
+      {
+        "service": "Family medicine",
+        "duration": "30 min",
+        "price": "Ask clinic"
+      },
+      {
+        "service": "Women health",
+        "duration": "45 min",
+        "price": "Ask clinic"
+      },
+      {
+        "service": "Diagnostics",
+        "duration": "30 min",
+        "price": "Ask clinic"
+      },
+      {
+        "service": "Preventive care",
+        "duration": "20 min",
+        "price": "Ask clinic"
+      }
+    ]
+  },
+  "gallery": [
+    {
+      "title": "Consultation rooms",
+      "label": "Replace with approved clinic interior photography",
+      "tone": "sand"
+    },
+    {
+      "title": "Care team",
+      "label": "Add consented physician and staff photography",
+      "tone": "rose"
+    },
+    {
+      "title": "Diagnostics & wellness",
+      "label": "Show verified facilities and patient services",
+      "tone": "sage"
+    }
+  ],
+  "team": [
+    {
+      "name": "Lead physician",
+      "role": "Add verified credentials",
+      "initials": "MD"
+    },
+    {
+      "name": "Care coordinator",
+      "role": "Add verified role",
+      "initials": "CC"
+    },
+    {
+      "name": "Diagnostics lead",
+      "role": "Add verified credentials",
+      "initials": "DL"
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Add a genuine, permission-cleared client review here.",
+      "author": "Verified client review"
+    },
+    {
+      "quote": "Use this space for a concise outcome-focused testimonial.",
+      "author": "Verified client review"
+    }
+  ],
+  "hours": [
+    {
+      "days": "Monday – Saturday",
+      "time": "Add verified hours"
+    },
+    {
+      "days": "Sunday",
+      "time": "Add verified hours"
+    }
+  ]
+}

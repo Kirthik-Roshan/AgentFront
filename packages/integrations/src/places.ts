@@ -128,10 +128,15 @@ interface GooglePlace {
   formattedAddress?: string;
   location?: { latitude?: number; longitude?: number };
   nationalPhoneNumber?: string;
+  internationalPhoneNumber?: string;
   rating?: number;
   userRatingCount?: number;
   websiteUri?: string;
   googleMapsUri?: string;
+  photos?: Array<{
+    name?: string;
+    authorAttributions?: Array<{ displayName?: string; uri?: string }>;
+  }>;
 }
 
 interface GooglePlacesResponse {
@@ -152,6 +157,34 @@ const searchLabel: Record<BusinessType, string> = {
   salon: "beauty salons",
   garments: "garment and clothing shops",
   mechanic: "automobile mechanic workshops",
+  clinic: "clinics and medical centres",
+  education: "coaching centres and training academies",
+  realestate: "real estate agencies",
+  fitness: "gyms and fitness studios",
+  bakery: "bakeries and cake shops",
+  legal: "law firms and legal services",
+  spa: "spa services",
+  dental: "dental services",
+  physiotherapy: "physiotherapy services",
+  petcare: "petcare services",
+  catering: "catering services",
+  events: "events services",
+  photography: "photography services",
+  interiors: "interiors services",
+  travel: "travel services",
+  movers: "movers services",
+  appliance: "appliance services",
+  trades: "trades services",
+  detailing: "detailing services",
+  drivingschool: "drivingschool services",
+  laundry: "laundry services",
+  furniture: "furniture services",
+  devicerepair: "devicerepair services",
+  printing: "printing services",
+  florist: "florist services",
+  jewellery: "jewellery services",
+  tailoring: "tailoring services",
+  cloudkitchen: "cloudkitchen services",
 };
 
 export class GooglePlacesProvider implements PlacesProvider {
@@ -184,12 +217,12 @@ export class GooglePlacesProvider implements PlacesProvider {
             "Content-Type": "application/json",
             "X-Goog-Api-Key": this.apiKey,
             "X-Goog-FieldMask":
-              "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.rating,places.userRatingCount,places.websiteUri,places.googleMapsUri",
+              "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.internationalPhoneNumber,places.rating,places.userRatingCount,places.websiteUri,places.googleMapsUri,places.photos",
           },
           body: JSON.stringify({
             // An explicit location in textQuery can override locationBias. Geocode
             // it first and keep this query categorical so the circle remains active.
-            textQuery: searchLabel[request.businessType],
+            textQuery: request.searchQuery?.trim() || searchLabel[request.businessType],
             pageSize: 20,
             // Text Search (New) supports circles for locationBias; its stricter
             // locationRestriction field supports rectangles only.
@@ -217,12 +250,19 @@ export class GooglePlacesProvider implements PlacesProvider {
         city: request.location,
         latitude: place.location?.latitude ?? 0,
         longitude: place.location?.longitude ?? 0,
-        phone: place.nationalPhoneNumber ?? null,
+        phone: place.internationalPhoneNumber ?? place.nationalPhoneNumber ?? null,
         rating: place.rating ?? 0,
         reviewCount: place.userRatingCount ?? 0,
         website: place.websiteUri ?? null,
         googleMapsUrl: place.googleMapsUri ?? null,
-        socialLinks: {},
+        photoName: place.photos?.[0]?.name ?? null,
+        photoAttribution: place.photos?.[0]?.authorAttributions?.[0]?.displayName
+          ? {
+              displayName: place.photos[0].authorAttributions[0].displayName,
+              uri: place.photos[0].authorAttributions[0].uri ?? null,
+            }
+          : null,
+        socialLinks: request.verticalId ? { agentfrontVertical: request.verticalId } : Object.create(null) as Record<string, string>,
         digitalPresenceStatus: place.websiteUri ? "ADEQUATE" : "NONE",
         onlineOrdering: null,
         reservationSystem: null,
@@ -257,6 +297,44 @@ export class GooglePlacesProvider implements PlacesProvider {
       };
       throw error;
     }
+  }
+
+  async getPhotoUri(photoName: string, maximumWidth: number): Promise<string> {
+    if (!/^places\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+$/.test(photoName)) {
+      throw new Error("Google Places returned an invalid photo resource name.");
+    }
+    const width = Math.min(1600, Math.max(120, Math.round(maximumWidth)));
+    const url = new URL(`https://places.googleapis.com/v1/${photoName}/media`);
+    url.searchParams.set("maxWidthPx", String(width));
+    url.searchParams.set("skipHttpRedirect", "true");
+    const result = await requestJson<{ photoUri?: string }>(this.name, url.toString(), {
+      method: "GET",
+      headers: { "X-Goog-Api-Key": this.apiKey },
+    });
+    if (!result.photoUri) throw new Error("Google Places did not return a photo URL.");
+    const photoUrl = new URL(result.photoUri);
+    if (photoUrl.protocol !== "https:") throw new Error("Google Places returned an unsafe photo URL.");
+    return photoUrl.href;
+  }
+
+  async getBusinessPhotoUri(externalPlaceId: string, maximumWidth: number): Promise<string> {
+    if (!/^[A-Za-z0-9_-]+$/.test(externalPlaceId)) {
+      throw new Error("Invalid Google Places business identifier.");
+    }
+    const place = await requestJson<{ photos?: GooglePlace["photos"] }>(
+      this.name,
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(externalPlaceId)}`,
+      {
+        method: "GET",
+        headers: {
+          "X-Goog-Api-Key": this.apiKey,
+          "X-Goog-FieldMask": "photos",
+        },
+      },
+    );
+    const photoName = place.photos?.[0]?.name;
+    if (!photoName) throw new Error("Google Places did not return a photo for this business.");
+    return this.getPhotoUri(photoName, maximumWidth);
   }
 
   private async geocode(location: string): Promise<Coordinates> {

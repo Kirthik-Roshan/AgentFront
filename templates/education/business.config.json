@@ -1,0 +1,130 @@
+{
+  "meta": {
+    "template": "education-v1",
+    "preview": true,
+    "previewLabel": "Education template preview — verified content only"
+  },
+  "theme": {
+    "ink": "#17183d",
+    "paper": "#f5f0e7",
+    "accent": "#6558e8",
+    "sage": "#ffc94b"
+  },
+  "business": {
+    "name": "Northstar Academy",
+    "descriptor": "Mentors · Mastery · Momentum",
+    "location": "Your neighbourhood",
+    "phoneDisplay": "Add verified phone",
+    "phoneLink": "",
+    "whatsappLink": "",
+    "bookingLink": "",
+    "mapsLink": ""
+  },
+  "hero": {
+    "eyebrow": "Admissions now open",
+    "title": "Turn curiosity into momentum.",
+    "description": "An energetic learning experience that makes outcomes and enrolment beautifully clear.",
+    "cta": "Explore programmes"
+  },
+  "services": [
+    {
+      "number": "01",
+      "name": "Foundation",
+      "description": "Concept-first learning that strengthens confidence."
+    },
+    {
+      "number": "02",
+      "name": "Competitive",
+      "description": "Focused preparation and mentor-led improvement."
+    },
+    {
+      "number": "03",
+      "name": "Future skills",
+      "description": "Technology, communication and projects."
+    },
+    {
+      "number": "04",
+      "name": "Career studio",
+      "description": "Portfolio guidance and interview readiness."
+    }
+  ],
+  "pricing": {
+    "note": "Replace with approved batches and fees.",
+    "items": [
+      {
+        "service": "Foundation",
+        "duration": "12 weeks",
+        "price": "Enquire"
+      },
+      {
+        "service": "Competitive",
+        "duration": "24 weeks",
+        "price": "Enquire"
+      },
+      {
+        "service": "Future skills",
+        "duration": "8 weeks",
+        "price": "Enquire"
+      },
+      {
+        "service": "Career studio",
+        "duration": "6 weeks",
+        "price": "Enquire"
+      }
+    ]
+  },
+  "gallery": [
+    {
+      "title": "Learning studios",
+      "label": "Replace with approved classroom photography",
+      "tone": "sand"
+    },
+    {
+      "title": "Project practice",
+      "label": "Show real workshops and student collaboration",
+      "tone": "rose"
+    },
+    {
+      "title": "Mentor moments",
+      "label": "Add consented teaching and guidance photography",
+      "tone": "sage"
+    }
+  ],
+  "team": [
+    {
+      "name": "Academic lead",
+      "role": "Add verified expertise",
+      "initials": "AL"
+    },
+    {
+      "name": "Senior mentor",
+      "role": "Add verified subject",
+      "initials": "SM"
+    },
+    {
+      "name": "Career coach",
+      "role": "Add verified expertise",
+      "initials": "CC"
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Add a genuine, permission-cleared client review here.",
+      "author": "Verified client review"
+    },
+    {
+      "quote": "Use this space for a concise outcome-focused testimonial.",
+      "author": "Verified client review"
+    }
+  ],
+  "hours": [
+    {
+      "days": "Monday – Saturday",
+      "time": "Add verified hours"
+    },
+    {
+      "days": "Sunday",
+      "time": "Add verified hours"
+    }
+  ]
+}

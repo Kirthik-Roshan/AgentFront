@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Configurable premium fitness studio website template by AgentFront.">
+  <meta name="theme-color" content="#25211f">
+  <title>Fitness template · AgentFront</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
+  <div class="route-veil" aria-hidden="true"><span class="route-veil-mark">M</span><span class="route-veil-label" id="routeVeilLabel">A moment for you</span></div>
+  <div class="preview-bar" id="previewBar" role="status">Fitness template preview</div>
+  <header class="header" id="top">
+    <a class="wordmark" href="#top"><span data-field="business.name">Studio Muse</span><small data-field="business.descriptor">Hair · Beauty · Ritual</small></a>
+    <button class="nav-toggle" type="button" aria-controls="nav" aria-expanded="false"><span></span><span></span><span class="sr-only">Open menu</span></button>
+    <nav id="nav" aria-label="Primary"><a href="#services">Services</a><a href="#pricing">Pricing</a><a href="#studio">Studio</a><a href="#team">Team</a><a href="#visit">Visit</a></nav>
+    <a class="pill header-book" href="#booking">Book now</a>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="hero-copy reveal">
+        <span class="hero-edition" aria-hidden="true">THE BEAUTY EDIT <i></i> VOL. 01</span>
+        <p class="eyebrow" data-field="hero.eyebrow">A quieter kind of beauty</p>
+        <h1 data-field="hero.title">Care that feels entirely your own.</h1>
+        <p data-field="hero.description">A coach-led fitness template built for classes, progress and trial bookings.</p>
+        <div class="actions"><a class="pill" href="#booking" data-field="hero.cta">Book your visit</a><a class="underlink" href="#services">Explore services <span>↓</span></a></div>
+        <div class="hero-ritual-shortcuts" role="group" aria-label="Preview a training programme"><span>Find your session</span><div id="heroRitualShortcuts"></div></div>
+        <p class="hero-scroll-note"><span aria-hidden="true">↘</span> Scroll to explore the studio</p>
+      </div>
+      <div class="hero-image reveal"><span class="sr-only">Premium fitness studio class</span>
+        <span class="hero-orbit hero-orbit-one" aria-hidden="true"></span><span class="hero-orbit hero-orbit-two" aria-hidden="true"></span>
+        <div class="ritual-stage" aria-hidden="true">
+          <span class="ritual-stage-kicker">YOUR BEAUTY EDIT</span>
+          <div class="ritual-stage-orb"><span id="ritualSymbol">✂</span></div>
+          <div class="ritual-stage-caption"><span id="ritualStageNumber">01</span><span id="ritualStageName">Cut &amp; finish</span></div>
+        </div>
+        <div class="image-stamp"><span>Thoughtful care</span><strong>01</strong></div>
+        <div class="ritual-finder" role="group" aria-label="Explore training programmes">
+          <div class="ritual-finder-top"><span>FIND YOUR RITUAL</span><span id="ritualCount">01 / 04</span></div>
+          <div class="ritual-tabs" id="ritualTabs" aria-label="Choose a treatment"></div>
+          <div class="ritual-preview" aria-live="polite"><span id="ritualNumber">01 / THE EDIT</span><h2 id="ritualName">Cut &amp; finish</h2><p id="ritualDescription">Consultation-led cuts, styling and event-ready finishes.</p><div class="ritual-preview-bottom"><span id="ritualPrice">from ₹900</span><button id="ritualChoose" type="button">Choose this ritual <span aria-hidden="true">↗</span></button></div></div>
+        </div>
+      </div>
+      <p class="vertical-note">Beauty, considered.</p>
+    </section>
+
+    <div class="hero-ticker" aria-hidden="true"><div>PERSONAL CARE <span>✳</span> YOUR MOMENT <span>✳</span> MADE WITH INTENTION <span>✳</span> PERSONAL CARE <span>✳</span> YOUR MOMENT <span>✳</span> MADE WITH INTENTION <span>✳</span></div></div>
+
+    <section class="intro shell">
+      <p class="intro-mark">M</p>
+      <div class="reveal"><p class="eyebrow">The studio philosophy</p><h2>Expert hands. Honest advice. Space to exhale.</h2></div>
+      <p class="intro-copy reveal">Replace this preview copy with the studio’s true coaching philosophy, specialities and approach to personalised care.</p>
+    </section>
+
+    <section class="services shell" id="services">
+      <header class="section-head reveal"><div><p class="eyebrow">Our services</p><h2>Care, from root to ritual.</h2></div><p>Explore each service to find the care that feels right for you.</p></header>
+      <div class="service-grid" id="serviceGrid"></div>
+    </section>
+
+    <section class="pricing" id="pricing">
+      <div class="shell pricing-layout">
+        <div class="pricing-title reveal"><p class="eyebrow">Service menu</p><h2>Clear choices.<br>Stronger progress.</h2><p data-field="pricing.note">Preview pricing — replace with the studio's approved membership list.</p></div>
+        <div class="price-list reveal" id="priceList"></div>
+      </div>
+    </section>
+
+    <section class="studio shell" id="studio">
+      <header class="section-head reveal"><div><p class="eyebrow">Inside the studio</p><h2>A calm place to arrive.</h2></div><p>Swap these art-directed placeholders for approved photography without changing the layout system.</p></header>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </section>
+
+    <section class="team shell" id="team">
+      <header class="section-head reveal"><div><p class="eyebrow">Meet the team</p><h2>People who listen first.</h2></div><p>Show names and credentials only after the client has verified them.</p></header>
+      <div class="team-grid" id="teamGrid"></div>
+    </section>
+
+    <section class="voices">
+      <div class="shell"><p class="eyebrow">Client notes</p><div class="quote-grid" id="quoteGrid"></div></div>
+    </section>
+
+    <section class="booking shell" id="booking">
+      <div class="booking-copy reveal"><p class="eyebrow">Trial sessions</p><h2>Ready for a little time that’s yours?</h2><p>Choose a service above, then use the verified booking path or begin a conversation on WhatsApp.</p><div class="booking-selection" id="bookingSelection" role="status" aria-live="polite"><span>Your visit</span><strong>No service selected yet</strong><small>Browse the service menu to choose one.</small></div></div>
+      <div class="booking-actions reveal"><a class="pill pill-light" id="bookingLink" href="#booking">Request an appointment</a><a class="underlink light" id="whatsappLink" href="#booking">Chat on WhatsApp ↗</a></div>
+    </section>
+
+    <section class="visit shell" id="visit">
+      <div class="visit-card"><p class="eyebrow">Find us</p><h2 data-field="business.location">Your neighbourhood</h2><a class="underlink" id="mapsLink" href="#visit">Open in maps ↗</a></div>
+      <div class="hours"><p class="eyebrow">Opening hours</p><div id="hoursList"></div><a id="phoneLink" class="underlink" href="#visit" data-field="business.phoneDisplay">Add verified phone</a></div>
+    </section>
+  </main>
+
+  <footer><a class="wordmark" href="#top"><span data-field="business.name">Studio Muse</span><small data-field="business.descriptor">Hair · Beauty · Ritual</small></a><p>Website system by AgentFront.</p><p>© <span id="year"></span></p></footer>
+</body>
+</html>

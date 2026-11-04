@@ -15,13 +15,22 @@ import type {
   TranscriptTurn,
 } from "./domain";
 
-export type IntegrationName = "places" | "crm" | "conversation" | "developer" | "deployment";
+export type IntegrationName =
+  | "places"
+  | "crm"
+  | "support"
+  | "conversation"
+  | "telephony"
+  | "scheduler"
+  | "jobQueue"
+  | "developer"
+  | "deployment";
 
 export interface IntegrationHealth {
   integration: IntegrationName;
   provider: string;
   mode: ProviderMode;
-  status: "CONNECTED" | "DEMO" | "DEGRADED" | "NOT_CONFIGURED";
+  status: "CONNECTED" | "DEMO" | "DEGRADED" | "UNAVAILABLE" | "NOT_CONFIGURED";
   message: string;
   checkedAt: string;
 }
@@ -29,6 +38,8 @@ export interface IntegrationHealth {
 export interface PlacesSearchRequest {
   location: string;
   businessType: BusinessType;
+  searchQuery?: string;
+  verticalId?: string;
   radiusMetres: number;
   websitePresence?: "ANY" | "MISSING" | "PRESENT";
   minimumRating?: number;
@@ -45,6 +56,10 @@ export interface PlacesProvider {
   readonly name: string;
   readonly mode: ProviderMode;
   search(request: PlacesSearchRequest): Promise<PlacesSearchResult>;
+  /** Resolves a short-lived photo URL without exposing provider credentials. */
+  /** Resolves the primary photo for a persisted provider place ID. */
+  getBusinessPhotoUri?(externalPlaceId: string, maximumWidth: number): Promise<string>;
+  getPhotoUri?(photoName: string, maximumWidth: number): Promise<string>;
   health(): Promise<IntegrationHealth>;
 }
 
@@ -58,6 +73,10 @@ export interface CRMContactInput {
   accountId: string;
   business: Business;
   displayName: string;
+  /** Actual identified contact number; falls back to the public business line for legacy flows. */
+  contactPhone?: string;
+  /** Customer-approved email, preferred as Freshsales unique identifier when available. */
+  contactEmail?: string | null;
 }
 
 export interface CRMDealInput {
@@ -104,6 +123,38 @@ export interface CRMProvider {
   getDeal(dealId: string): Promise<CRMDealRecord | null>;
   listDeals(limit?: number): Promise<CRMDealSummary[]>;
   getConsoleUrl(): string | null;
+  health(): Promise<IntegrationHealth>;
+}
+
+/** An operational exception or post-sale request, never a Freshsales deal. */
+export interface SupportTicketInput {
+  businessId: string;
+  workflowId: string;
+  correlationId: string;
+  category:
+    | "SALES_CALL_FAILED"
+    | "BUILD_FAILED"
+    | "DEPLOYMENT_FAILED"
+    | "ADVERTISEMENT_FAILED"
+    | "PAYMENT_ANOMALY"
+    | "CLIENT_CHANGE_REQUEST";
+  subject: string;
+  description: string;
+  priority: 1 | 2 | 3 | 4;
+  retryCount?: number;
+}
+
+export interface SupportTicketResult {
+  status: "CREATED" | "NOT_CONFIGURED";
+  id: string | null;
+  url: string | null;
+}
+
+export interface SupportProvider {
+  readonly name: string;
+  readonly mode: ProviderMode;
+  /** Caller must also persist a dedupe key; provider-local replay protection is not durable. */
+  createTicket(input: SupportTicketInput, idempotencyKey: string): Promise<SupportTicketResult>;
   health(): Promise<IntegrationHealth>;
 }
 

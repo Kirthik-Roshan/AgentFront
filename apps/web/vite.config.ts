@@ -8,6 +8,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
+    // AgentFront's API permits WEB_ORIGIN (localhost:3000). Falling through to
+    // 3001 creates a convincing but disconnected UI, so fail loudly instead.
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:4000',
